@@ -279,10 +279,52 @@ async function run() {
 
         //get topInstructorsData
         app.get('/topinstructors', async (req, res) => {
+            // step1: find all instructor email
             const query = { role: 'instructor' };
-            const cursor = usersCollection.find(query);
-            const result = await cursor.limit(6).toArray();
-            res.send(result)
+            const options = {
+                projection: { _id: 0, email: 1 }
+            };
+            const cursor = usersCollection.find(query, options);
+            const instructorsEmailCollection = await cursor.toArray();
+
+            //step2: find total student of each instructor            
+            async function getPopularInstructors() {
+                const promises = instructorsEmailCollection.map(async ({ email }) => {
+                    const pipeline = [
+                        { $match: { email: email } },
+                        { $group: { _id: '$email', totalStudents: { $sum: '$students' } } },
+                        { $project: { _id: 0, email: '$_id', totalStudents: 1 } }
+                        // { $sort: { totalStudents: -1 } } //sorting not working in this senario
+                    ];
+
+                    const findTotalStudent = classesCollection.aggregate(pipeline);
+                    const res = await findTotalStudent.toArray();
+
+                    if (res.length) {
+                        return res[0];
+                    }
+                });
+
+                const results = await Promise.all(promises);
+
+                // Filter out any undefined results before logging
+                const filteredResults = results.filter(result => result !== undefined);
+
+                // Sort the results in descending order based on totalStudents
+                const sortedResults = filteredResults.sort((a, b) => b.totalStudents - a.totalStudents);
+
+                let sortedInstructor = sortedResults.slice(0, 6);
+                let getInstructorPromise = sortedInstructor.map(async (instructor) => {
+                    let query = { email: instructor.email };
+                    let result = await usersCollection.findOne(query);
+                    return result;
+                })
+
+                const popularInstructor = await Promise.all(getInstructorPromise);
+                res.send(popularInstructor);
+            }
+
+            getPopularInstructors();
         })
 
 
