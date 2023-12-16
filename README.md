@@ -1,2 +1,2 @@
-﻿# summer-camp-server-link:
-"# SportEX-client" 
+
+"# shikho-server" 
