@@ -140,10 +140,14 @@ async function run() {
 
         //get all approved Class Data
         app.get('/classes', async (req, res) => {
+            const page = req.query.page;
+            const pageSize = parseInt(req.query.limit);
+            const skipDocument = (page - 1) * pageSize;
             const query = { status: 'approved' };
-            const cursor = classesCollection.find(query);
-            const result = await cursor.toArray();
-            res.send(result)
+            const cursor = classesCollection.find(query).skip(skipDocument).limit(pageSize);
+            const classesCount = await classesCollection.countDocuments(query);
+            const classes = await cursor.toArray();            
+            res.send({classes,classesCount})
         })
 
         //get class by email
@@ -309,7 +313,7 @@ async function run() {
 
                 // Filter out any undefined results before logging
                 const filteredResults = results.filter(result => result !== undefined);
-
+                console.log(filteredResults);
                 // Sort the results in descending order based on totalStudents
                 const sortedResults = filteredResults.sort((a, b) => b.totalStudents - a.totalStudents);
 
