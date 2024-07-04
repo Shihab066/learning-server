@@ -142,12 +142,14 @@ async function run() {
         app.get('/classes', async (req, res) => {
             const page = req.query.page;
             const pageSize = parseInt(req.query.limit);
+            const sortValue = parseInt(req.query.sort);
+            const searchValue = req.query.search === "undefined" ? '' : req.query.search;            
             const skipDocument = (page - 1) * pageSize;
-            const query = { status: 'approved' };
-            const cursor = classesCollection.find(query).skip(skipDocument).limit(pageSize);
+            const query = { status: 'approved', name: {$regex: searchValue, $options: 'i'}};
+            const cursor = sortValue ? classesCollection.find(query).sort({ price: sortValue }).skip(skipDocument).limit(pageSize) : classesCollection.find(query).skip(skipDocument).limit(pageSize);
             const classesCount = await classesCollection.countDocuments(query);
-            const classes = await cursor.toArray();            
-            res.send({classes,classesCount})
+            const classes = await cursor.toArray();
+            res.send({ classes, classesCount })
         })
 
         //get class by email
