@@ -86,10 +86,18 @@ async function run() {
         }
 
         //Users API
-        //get all user
+        //get all users
         app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
             const result = await usersCollection.find().toArray();
             res.send(result)
+        })
+
+        // get user info
+        app.get('/user/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            res.send(user);
         })
 
         //get user role api
@@ -112,6 +120,23 @@ async function run() {
             }
             const result = await usersCollection.insertOne(user);
             res.send(result)
+        })
+
+        // update user info
+        app.patch('/updateUser/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const updateInfo = req.body;
+            const { name, image } = updateInfo;
+            console.log(name, image);
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    name,
+                    image
+                }
+            }
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result);
         })
 
         //update user type/role 
@@ -143,9 +168,9 @@ async function run() {
             const page = req.query.page;
             const pageSize = parseInt(req.query.limit);
             const sortValue = parseInt(req.query.sort);
-            const searchValue = req.query.search === "undefined" ? '' : req.query.search;            
+            const searchValue = req.query.search === "undefined" ? '' : req.query.search;
             const skipDocument = (page - 1) * pageSize;
-            const query = { status: 'approved', name: {$regex: searchValue, $options: 'i'}};
+            const query = { status: 'approved', name: { $regex: searchValue, $options: 'i' } };
             const cursor = sortValue ? classesCollection.find(query).sort({ price: sortValue }).skip(skipDocument).limit(pageSize) : classesCollection.find(query).skip(skipDocument).limit(pageSize);
             const classesCount = await classesCollection.countDocuments(query);
             const classes = await cursor.toArray();
