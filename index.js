@@ -100,10 +100,20 @@ async function run() {
             res.send(user);
         })
 
+        app.get('/getSignupMethod/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email: email };
+            const optoins = {
+                projection: { _id: 0, signupMethod: 1 }
+            };
+            const signupMethod = await usersCollection.findOne(query, optoins);
+            res.send(signupMethod);
+        })
+
         //get user role api
         app.get('/users/:email', async (req, res) => {
             const email = req.params.email;
-            const query = { email: email }
+            const query = { email: email };
             const user = await usersCollection.findOne(query);
             const result = await user?.role === 'student' && 'student' || user?.role === 'instructor' && 'instructor' || user?.role === 'admin' && 'admin';
             res.send(result);
