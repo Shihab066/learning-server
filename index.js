@@ -137,7 +137,6 @@ async function run() {
             const id = req.params.id;
             const updateInfo = req.body;
             const { name, image } = updateInfo;
-            console.log(name, image);
             const filter = { _id: new ObjectId(id) };
             const updateDoc = {
                 $set: {
@@ -149,11 +148,26 @@ async function run() {
             res.send(result);
         })
 
+        // update instructor profile info
+        app.patch('/updateInstructorProfile/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const updateInfo = req.body;
+            const info = { ...updateInfo };  
+            console.log(info);
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: info
+            }                        
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        })
+
+
         //update user type/role 
         app.patch('/users/:id', async (req, res) => {
             const id = req.params.id;
             const updateRole = req.body;
-            const { role } = updateRole
+            const { role } = updateRole;
             const filter = { _id: new ObjectId(id) };
             const updateDoc = {
                 $set: {
