@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 require('dotenv').config()
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5874;
 
 // app.use(cors());
 app.use(express.json());
@@ -128,7 +128,7 @@ async function run() {
             if (existingUser) {
                 return
             }
-            const result = await usersCollection.insertOne(user);
+            const result = await usersCollection.insertOne(userData);
             res.send(result)
         })
 
@@ -137,7 +137,7 @@ async function run() {
             const id = req.params.id;
             const updateInfo = req.body;
             const { name, image } = updateInfo;
-            const filter = { _id: new ObjectId(id) };
+            const filter = { _id: id };
             const updateDoc = {
                 $set: {
                     name,
@@ -152,12 +152,12 @@ async function run() {
         app.patch('/updateInstructorProfile/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const updateInfo = req.body;
-            const info = { ...updateInfo };  
+            const info = { ...updateInfo };
             console.log(info);
-            const filter = { _id: new ObjectId(id) };
+            const filter = { _id: id };
             const updateDoc = {
                 $set: info
-            }                        
+            }
             const result = await usersCollection.updateOne(filter, updateDoc);
             res.send(result);
         })
@@ -168,7 +168,7 @@ async function run() {
             const id = req.params.id;
             const updateRole = req.body;
             const { role } = updateRole;
-            const filter = { _id: new ObjectId(id) };
+            const filter = { _id: id };
             const updateDoc = {
                 $set: {
                     role: role
@@ -201,14 +201,56 @@ async function run() {
             res.send({ classes, classesCount })
         })
 
-        //get class by email
-        app.get('/classes/:email', verifyJWT, verifyInstructor, async (req, res) => {
-            const email = req.params.email;
-            if (req.decoded.email !== email) {
+        //get courses by instructor id
+        app.get('/courses/:id', verifyJWT, verifyInstructor, async (req, res) => {
+            const id = req.params.id;
+            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+            if (req.decoded.email !== instructorEmail?.email) {
                 return res.send({ error: true, message: 'Forbidden Access' })
             }
-            const query = { email: email }
-            const result = await classesCollection.find(query).toArray();
+            const query = { _instructorId: id };
+            const options = {
+                projection: {
+                    _instructorId: 1,
+                    courseName: 1,
+                    courseThumbnail: 1,
+                    reviews: 1,
+                    price: 1,
+                    discount: 1,
+                    level: 1,
+                    status: 1,                   
+                    feedback: 1,
+                    publish: 1
+                }
+            };
+            const result = await classesCollection.find(query, options).toArray();
+            res.send(result)
+        })
+
+        //get courses by id
+        app.get('/course', verifyJWT, verifyInstructor, async (req, res) => {
+            const courseId = req.query.courseId
+            const id = req.query.id;
+            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+            if (req.decoded.email !== instructorEmail?.email) {
+                return res.send({ error: true, message: 'Forbidden Access' })
+            }
+            const query = { _id: new ObjectId(courseId) };
+            const options = {
+                projection: {
+                    courseName: 1,
+                    courseThumbnail: 1,
+                    shortDescription: 1,
+                    description: 1,
+                    level: 1,
+                    category: 1,
+                    price: 1,
+                    discount: 1,
+                    seats: 1,
+                    courseContents: 1                   
+                }
+            };
+            const result = await classesCollection.findOne(query, options);
             res.send(result)
         })
 
@@ -235,8 +277,15 @@ async function run() {
 
         //Add new Class api
         app.post('/classes', verifyJWT, verifyInstructor, async (req, res) => {
-            const newClass = req.body;
-            const result = await classesCollection.insertOne(newClass);
+            const newCourse = req.body;
+            const modifiedCourse = {
+                ...newCourse,
+                students: 0,
+                status: 'pending',
+                feedback: '',
+                reviews: []
+            }
+            const result = await classesCollection.insertOne(modifiedCourse);
             res.send(result);
         })
 
@@ -260,16 +309,37 @@ async function run() {
 
         })
 
-        //Update Class data by id
-        app.patch('/classes/:id', verifyJWT, verifyInstructor, async (req, res) => {
-            const id = req.params.id;
-            const classData = req.body;
-            const { price, seats } = classData;
-            const filter = { _id: new ObjectId(id) };
+        //Update course data by id
+        app.patch('/updateCourse', verifyJWT, verifyInstructor, async (req, res) => {
+            const courseId = req.query.courseId
+            const id = req.query.id;
+            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+            if (req.decoded.email !== instructorEmail?.email) {
+                return res.send({ error: true, message: 'Forbidden Access' })
+            }            
+            const updatedCourseData = req.body;            
+            const filter = { _id: new ObjectId(courseId) };
+            const updateDoc = {
+                $set: updatedCourseData
+            }
+            const result = await classesCollection.updateOne(filter, updateDoc)
+            res.send(result);
+        })
+
+        // Update Course publish status by id
+        app.patch('/updatePublishStatus', verifyJWT, verifyInstructor, async (req, res) => {
+            const courseId = req.query.courseId
+            const id = req.query.id;
+            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+            if (req.decoded.email !== instructorEmail?.email) {
+                return res.send({ error: true, message: 'Forbidden Access' })
+            }            
+            const {publish} = req.body;            
+            const filter = { _id: new ObjectId(courseId) };
             const updateDoc = {
                 $set: {
-                    price: price, seats: seats
-                },
+                    publish: publish
+                }
             }
             const result = await classesCollection.updateOne(filter, updateDoc)
             res.send(result);
