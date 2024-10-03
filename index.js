@@ -92,7 +92,7 @@ async function run() {
             }
             next();
         }
-
+ 
         // Get image upload singature
         app.get('/get-signature', verifyJWT, (req, res) => {
             const timestamp = Math.round(new Date().getTime() / 1000);
