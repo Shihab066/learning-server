@@ -3,17 +3,25 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const cloudinary = require('cloudinary').v2;
 require('dotenv').config()
 const app = express();
-const port = process.env.PORT || 5874;
-
-// app.use(cors());
+const port = process.env.PORT || 5000;
 app.use(express.json());
+// Cors Config
 const corsConfig = {
-    origin: '*',
+    origin: ['https://learning-point-us.vercel.app', 'http://localhost:5173'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 }
+
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_SECRET,
+});
+
 app.use(cors(corsConfig))
 app.options("", cors(corsConfig))
 
@@ -34,6 +42,7 @@ const verifyJWT = (req, res, next) => {
     })
 }
 
+
 //MONGO_DB
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cxwtjms.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -48,8 +57,6 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        // await client.connect();
-
         const database = client.db('shikhoDB');
         const classesCollection = database.collection('classes');
         const usersCollection = database.collection('users');
@@ -64,19 +71,20 @@ async function run() {
         })
 
         //Verify Instructor
-        const verifyInstructor = async (req, res, next) => {
-            const email = req.decoded.email;
+        const verifyInstructor = async (req, res, next) => {            
+            const email = req.decoded?.email;
             const query = { email: email }
             const user = await usersCollection.findOne(query);
             if (user?.role !== 'instructor') {
-                return res.status(403).send({ error: true, message: 'Forbidden Access' });
+                return res.status(403).json({ error: true, message: 'Forbidden Access' });
             }
             next();
         }
 
+
         //Verify Admin
         const verifyAdmin = async (req, res, next) => {
-            const email = req.decoded.email;
+            const email = req.decoded?.email;
             const query = { email: email }
             const user = await usersCollection.findOne(query);
             if (user?.role !== 'admin') {
@@ -84,6 +92,25 @@ async function run() {
             }
             next();
         }
+
+        // Get image upload singature
+        app.get('/get-signature', verifyJWT, (req, res) => {
+            const timestamp = Math.round(new Date().getTime() / 1000);
+
+            // Generate signature for unsigned upload
+            const signature = cloudinary.utils.api_sign_request(
+                { timestamp: timestamp, upload_preset: process.env.UPLOAD_PRESET },
+                cloudinary.config().api_secret
+            );
+
+            res.json({
+                signature,
+                timestamp,
+                cloud_name: cloudinary.config().cloud_name,
+                cloud_api: cloudinary.config().api_key,
+                upload_preset: process.env.UPLOAD_PRESET
+            });
+        });
 
         //Users API
         //get all users
@@ -202,7 +229,7 @@ async function run() {
         })
 
         //get courses by instructor id
-        app.get('/courses/:id', verifyJWT, verifyInstructor, async (req, res) => {
+        app.get('/courses/:id',verifyJWT, verifyInstructor, async (req, res) => {
             const id = req.params.id;
             const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
             if (req.decoded.email !== instructorEmail?.email) {
@@ -218,7 +245,7 @@ async function run() {
                     price: 1,
                     discount: 1,
                     level: 1,
-                    status: 1,                   
+                    status: 1,
                     feedback: 1,
                     publish: 1
                 }
@@ -247,7 +274,7 @@ async function run() {
                     price: 1,
                     discount: 1,
                     seats: 1,
-                    courseContents: 1                   
+                    courseContents: 1
                 }
             };
             const result = await classesCollection.findOne(query, options);
@@ -316,8 +343,8 @@ async function run() {
             const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
             if (req.decoded.email !== instructorEmail?.email) {
                 return res.send({ error: true, message: 'Forbidden Access' })
-            }            
-            const updatedCourseData = req.body;            
+            }
+            const updatedCourseData = req.body;
             const filter = { _id: new ObjectId(courseId) };
             const updateDoc = {
                 $set: updatedCourseData
@@ -333,8 +360,8 @@ async function run() {
             const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
             if (req.decoded.email !== instructorEmail?.email) {
                 return res.send({ error: true, message: 'Forbidden Access' })
-            }            
-            const {publish} = req.body;            
+            }
+            const { publish } = req.body;
             const filter = { _id: new ObjectId(courseId) };
             const updateDoc = {
                 $set: {
@@ -378,11 +405,16 @@ async function run() {
         })
 
         //Delete class by id
-        app.delete('/classes/:id', verifyJWT, verifyInstructor, async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
+        app.delete('/deleteCourse', verifyJWT, verifyInstructor, async (req, res) => {
+            const courseId = req.query.courseId;
+            const id = req.query.id;
+            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+            if (req.decoded.email !== instructorEmail?.email) {
+                return res.status(403).json({ error: true, message: 'Forbidden Access' })
+            }
+            const query = { _id: new ObjectId(courseId) };
             const result = await classesCollection.deleteOne(query);
-            res.send(result)
+            res.send(result);
         })
 
         app.delete('/selectedClass/:id', async (req, res) => {
