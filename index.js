@@ -59,6 +59,7 @@ async function run() {
     try {
         const database = client.db('shikhoDB');
         const classesCollection = database.collection('classes');
+        const coursesReviews = database.collection('coursesReviews');
         const usersCollection = database.collection('users');
         const selectedClassCollection = database.collection('selectedClass');
         const paymentsCollection = database.collection('payments');
@@ -240,28 +241,21 @@ async function run() {
                 projection: {
                     _instructorId: 1,
                     courseName: 1,
-                    courseThumbnail: 1,                    
+                    courseThumbnail: 1,
                     price: 1,
                     discount: 1,
                     level: 1,
                     status: 1,
                     feedback: 1,
                     publish: 1,
-                    reviews: 1
+                    rating: 1,
+                    totalReviews: 1
                 }
             };
-            const getRating = (reviews) => {
-                const rating = reviews.map(review => review.rating);
-                return rating;
-            }
             const courses = await classesCollection.find(query, options).toArray();
-            const modifiedCourses = courses.map(course => (
-                {...course, reviews: getRating(course?.reviews)}
-            ))           
-                       
-            res.send(modifiedCourses);
+            res.send(courses);
         })
-        
+
         //get courses by id
         app.get('/course', verifyJWT, verifyInstructor, async (req, res) => {
             const courseId = req.query.courseId
@@ -317,8 +311,7 @@ async function run() {
                 ...newCourse,
                 students: 0,
                 status: 'pending',
-                feedback: '',
-                reviews: []
+                feedback: ''               
             }
             const result = await classesCollection.insertOne(modifiedCourse);
             res.send(result);
@@ -431,6 +424,55 @@ async function run() {
             const result = await selectedClassCollection.deleteOne(query);
             res.send(result)
         })
+
+        // Api for course Reviews
+
+        // get course reviews by courseID
+        app.get('/courseReviews/:courseId', async (req, res) => {
+            const courseId = req.params.courseId;
+            const query = { _courseId: courseId };
+            const options = {
+                projection: {
+                    _id: 0,
+                    userName: 1,
+                    userImage: 1,
+                    rating: 1,
+                    reviewDate: 1,
+                    reviewData: 1,
+                }
+            }
+            const reviews = await coursesReviews.find(query, options).toArray();
+            res.status(200).send(reviews);
+        })
+
+        // Add review by courseID
+        app.post('/addReviews', async (req, res) => {
+            const reviewData = req.body;
+            const result = await coursesReviews.insertOne(reviewData);
+
+            const courseId = reviewData?._courseId;
+            const query = { _courseId: courseId };
+            const options = {
+                projection: { _id: 0, rating: 1 }
+            }
+            const ratings = await coursesReviews.find(query, options).toArray(); //retrive rating of course 
+            const ratingsArr = ratings.map(rating => rating.rating);
+
+            const totalReviews = ratingsArr.length;
+            const rating = parseFloat((ratingsArr.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / totalReviews).toFixed(1));
+            console.log(rating, totalReviews)
+            const filter = { _id: new ObjectId(courseId) }
+            const updateCourseRating = {
+                $set: {
+                    rating,
+                    totalReviews
+                }
+            }
+            await classesCollection.updateOne(filter, updateCourseRating);
+
+            res.send(result);
+        })
+
 
         //API FOR INSTRUCTOR DATA
 
