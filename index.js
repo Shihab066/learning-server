@@ -71,7 +71,7 @@ async function run() {
         })
 
         //Verify Instructor
-        const verifyInstructor = async (req, res, next) => {            
+        const verifyInstructor = async (req, res, next) => {
             const email = req.decoded?.email;
             const query = { email: email }
             const user = await usersCollection.findOne(query);
@@ -92,7 +92,7 @@ async function run() {
             }
             next();
         }
- 
+
         // Get image upload singature
         app.get('/get-signature', verifyJWT, (req, res) => {
             const timestamp = Math.round(new Date().getTime() / 1000);
@@ -229,7 +229,7 @@ async function run() {
         })
 
         //get courses by instructor id
-        app.get('/courses/:id',verifyJWT, verifyInstructor, async (req, res) => {
+        app.get('/courses/:id', verifyJWT, verifyInstructor, async (req, res) => {
             const id = req.params.id;
             const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
             if (req.decoded.email !== instructorEmail?.email) {
@@ -240,20 +240,28 @@ async function run() {
                 projection: {
                     _instructorId: 1,
                     courseName: 1,
-                    courseThumbnail: 1,
-                    reviews: 1,
+                    courseThumbnail: 1,                    
                     price: 1,
                     discount: 1,
                     level: 1,
                     status: 1,
                     feedback: 1,
-                    publish: 1
+                    publish: 1,
+                    reviews: 1
                 }
             };
-            const result = await classesCollection.find(query, options).toArray();
-            res.send(result)
+            const getRating = (reviews) => {
+                const rating = reviews.map(review => review.rating);
+                return rating;
+            }
+            const courses = await classesCollection.find(query, options).toArray();
+            const modifiedCourses = courses.map(course => (
+                {...course, reviews: getRating(course?.reviews)}
+            ))           
+                       
+            res.send(modifiedCourses);
         })
-
+        
         //get courses by id
         app.get('/course', verifyJWT, verifyInstructor, async (req, res) => {
             const courseId = req.query.courseId
