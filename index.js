@@ -232,11 +232,12 @@ async function run() {
         //get courses by instructor id
         app.get('/courses/:id', verifyJWT, verifyInstructor, async (req, res) => {
             const id = req.params.id;
+            const searchValue = req.query.search;
             const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
             if (req.decoded.email !== instructorEmail?.email) {
                 return res.send({ error: true, message: 'Forbidden Access' })
             }
-            const query = { _instructorId: id };
+            const query = { _instructorId: id, courseName: { $regex: searchValue, $options: 'i' } };
             const options = {
                 projection: {
                     _instructorId: 1,
@@ -256,7 +257,7 @@ async function run() {
             res.send(courses);
         })
 
-        //get courses by id
+        //get course by instructor id
         app.get('/course', verifyJWT, verifyInstructor, async (req, res) => {
             const courseId = req.query.courseId
             const id = req.query.id;
@@ -311,7 +312,7 @@ async function run() {
                 ...newCourse,
                 students: 0,
                 status: 'pending',
-                feedback: ''               
+                feedback: ''
             }
             const result = await classesCollection.insertOne(modifiedCourse);
             res.send(result);
@@ -443,6 +444,54 @@ async function run() {
             }
             const reviews = await coursesReviews.find(query, options).toArray();
             res.status(200).send(reviews);
+        })
+
+        // get course reviews by courseID
+        app.get('/courseReviews/:courseId', async (req, res) => {
+            const courseId = req.params.courseId;
+            const query = { _courseId: courseId };
+            const options = {
+                projection: {
+                    _id: 0,
+                    userName: 1,
+                    userImage: 1,
+                    rating: 1,
+                    date: 1,
+                    review: 1,
+                }
+            }
+            const reviews = await coursesReviews.find(query, options).toArray();
+            res.status(200).send(reviews);
+        })
+
+        // get course reviews by instructorId
+        app.get('/instructorCoursesReviews/:instructorId', async (req, res) => {
+            const instructorId = req.params.instructorId;
+            const searchValue = req.query.search || '';
+            const limit = parseInt(req.query.limit) || 4;
+            const query = {
+                _instructorId: instructorId,
+                $or: [
+                    { courseName: { $regex: searchValue, $options: 'i' } },
+                    { userName: { $regex: searchValue, $options: 'i' } }
+                ]
+            };
+
+            const options = {
+                projection: {
+                    _id: 0,
+                    userName: 1,
+                    userImage: 1,
+                    courseName: 1,
+                    rating: 1,
+                    date: 1,
+                    review: 1,
+                }
+            }
+            const cursor = coursesReviews.find(query, options).limit(limit);
+            const totalReviews = await coursesReviews.countDocuments(query);
+            const reviews = await cursor.toArray();
+            res.status(200).send({ reviews, totalReviews });
         })
 
         // Add review by courseID
