@@ -1,5 +1,5 @@
 import express from 'express';
-import { addNewCourse, getAllApprovedCourses, getAllCourses, getInstructorCourse, getInstructorCourses, getTopCourses, updateCourseById, updateCoursePublishStatus } from '../controllers/courseController.js';
+import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getInstructorCourse, getInstructorCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCoursePublishStatus } from '../controllers/courseController.js';
 
 const courseRouter = express.Router();
 
@@ -21,12 +21,19 @@ courseRouter.get('/instructorCourses/:instructorId', getInstructorCourses);
 //add new course. Instructor verify need
 courseRouter.post('/add', addNewCourse);
 
-//update course data by id. Instructor verify need
+//update course data by courseId. Instructor verify need
 courseRouter.patch('/update', updateCourseById);
 
-// Update Course publish status by id. Instructor verify need
+//upfate course publish status by courseId. Instructor verify need
 courseRouter.patch('/updatePublishStatus', updateCoursePublishStatus);
 
+//update course feedback by courseId. Admin verify need
+courseRouter.patch('/updatefeedback/:id', updateCourseFeedback);
 
+//update course approved status by courseId. Admin verify need
+courseRouter.patch('/status/:id', updateCourseApprovedStatus);
+
+//delete course by courseId. Instructor verify need
+app.delete('/delete', deleteCourse);
 
 export default courseRouter;

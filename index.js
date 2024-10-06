@@ -383,50 +383,50 @@ async function run() {
         //     res.send(result);
         // })
 
-        //Update class feedback by id
-        app.patch('/feedback/:id', verifyJWT, verifyAdmin, async (req, res) => {
-            const id = req.params.id;
-            const classData = req.body;
-            const { feedback } = classData;
-            const filter = { _id: new ObjectId(id) };
-            const updateDoc = {
-                $set: {
-                    feedback: feedback
-                },
-            }
-            console.log(classData)
-            const result = await classesCollection.updateOne(filter, updateDoc);
-            res.send(result);
-        })
+        // //Update class feedback by id
+        // app.patch('/feedback/:id', verifyJWT, verifyAdmin, async (req, res) => {
+        //     const id = req.params.id;
+        //     const classData = req.body;
+        //     const { feedback } = classData;
+        //     const filter = { _id: new ObjectId(id) };
+        //     const updateDoc = {
+        //         $set: {
+        //             feedback: feedback
+        //         },
+        //     }
+        //     console.log(classData)
+        //     const result = await classesCollection.updateOne(filter, updateDoc);
+        //     res.send(result);
+        // })
 
-        //update class status by id
-        app.patch('/status/:id', verifyJWT, verifyAdmin, async (req, res) => {
-            const id = req.params.id;
-            const classData = req.body;
-            const { status } = classData;
-            const filter = { _id: new ObjectId(id) };
-            const updateDoc = {
-                $set: {
-                    status: status
-                },
-            }
-            console.log(classData)
-            const result = await classesCollection.updateOne(filter, updateDoc);
-            res.send(result);
-        })
+        // //update class status by id
+        // app.patch('/status/:id', verifyJWT, verifyAdmin, async (req, res) => {
+        //     const id = req.params.id;
+        //     const classData = req.body;
+        //     const { status } = classData;
+        //     const filter = { _id: new ObjectId(id) };
+        //     const updateDoc = {
+        //         $set: {
+        //             status: status
+        //         },
+        //     }
+        //     console.log(classData)
+        //     const result = await classesCollection.updateOne(filter, updateDoc);
+        //     res.send(result);
+        // })
 
-        //Delete class by id
-        app.delete('/deleteCourse', verifyJWT, verifyInstructor, async (req, res) => {
-            const courseId = req.query.courseId;
-            const id = req.query.id;
-            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
-            if (req.decoded.email !== instructorEmail?.email) {
-                return res.status(403).json({ error: true, message: 'Forbidden Access' })
-            }
-            const query = { _id: new ObjectId(courseId) };
-            const result = await classesCollection.deleteOne(query);
-            res.send(result);
-        })
+        // //Delete class by id
+        // app.delete('/deleteCourse', verifyJWT, verifyInstructor, async (req, res) => {
+        //     const courseId = req.query.courseId;
+        //     const id = req.query.id;
+        //     const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+        //     if (req.decoded.email !== instructorEmail?.email) {
+        //         return res.status(403).json({ error: true, message: 'Forbidden Access' })
+        //     }
+        //     const query = { _id: new ObjectId(courseId) };
+        //     const result = await classesCollection.deleteOne(query);
+        //     res.send(result);
+        // })
 
         app.delete('/selectedClass/:id', async (req, res) => {
             const id = req.params.id;

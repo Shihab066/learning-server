@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import { coursesCollection, usersCollection } from "../index.js";
 
 export const getTopCourses = async (req, res) => {
@@ -142,7 +143,7 @@ export const addNewCourse = async (req, res) => {
             totalReviews: 0
         };
 
-        const result = await classesCollection.insertOne(modifiedCourse);
+        const result = await coursesCollection.insertOne(modifiedCourse);
         res.status(201).json({ message: "Course added successfully.", result });
     } catch (error) {
         console.error("Error adding new course:", error);
@@ -208,6 +209,84 @@ export const updateCoursePublishStatus = async (req, res) => {
         res.status(200).json({ message: "Publish status updated successfully.", result });
     } catch (error) {
         console.error("Error updating publish status:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const updateCourseFeedback = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { feedback } = req.body;
+
+        if (!feedback) {
+            return res.status(400).json({ message: "Feedback is required." });
+        }
+
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = { $set: { feedback } };
+
+        const result = await coursesCollection.updateOne(filter, updateDoc);
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ message: "Class not found or no changes made." });
+        }
+
+        res.status(200).json({ message: "Feedback updated successfully.", result });
+    } catch (error) {
+        console.error("Error updating feedback:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const updateCourseApprovedStatus = async (req, res) => {
+    try {
+        const courseId = req.params.id;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ message: "Status is required." });
+        }
+
+        const filter = { _id: new ObjectId(courseId) };
+        const updateDoc = { $set: { status } };
+
+        const result = await coursesCollection.updateOne(filter, updateDoc);
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ message: "Class not found or no changes made." });
+        }
+
+        res.status(200).json({ message: "Status updated successfully.", result });
+    } catch (error) {
+        console.error("Error updating class status:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const deleteCourse = async (req, res) => {
+    try {
+        const courseId = req.query.courseId;
+        const instructorId = req.query.id;
+
+        const instructorEmail = await usersCollection.findOne(
+            { _id: instructorId },
+            { projection: { _id: 0, email: 1 } }
+        );
+
+        if (req.decoded.email !== instructorEmail?.email) {
+            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+        }
+
+        const query = { _id: new ObjectId(courseId) };
+        const result = await coursesCollection.deleteOne(query);
+
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: "Course not found. No course deleted" });
+        }
+
+        res.status(200).json({ message: "Course deleted successfully.", result });
+    } catch (error) {
+        console.error("Error deleting course:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
