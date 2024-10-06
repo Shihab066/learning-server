@@ -1,19 +1,28 @@
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const express = require('express');
-const cors = require('cors');
-const jwt = require('jsonwebtoken');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const cloudinary = require('cloudinary').v2;
-require('dotenv').config()
+
+import userRouter from './routes/userRouter.js';
+
+import express from 'express';
+import dotenv from 'dotenv';
+import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
+import cors from 'cors';
+import jwt from 'jsonwebtoken';
+import Stripe from 'stripe';
+import { v2 as cloudinary } from 'cloudinary';
+import courseRouter from './routes/courseRouter.js';
+dotenv.config();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = process.env.PORT || 5000;
 app.use(express.json());
-// Cors Config
+
 const corsConfig = {
     origin: ['https://learning-point-us.vercel.app', 'http://localhost:5173'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 }
+
+app.use(cors(corsConfig))
+app.options("", cors(corsConfig))
 
 // Configure Cloudinary
 cloudinary.config({
@@ -22,8 +31,6 @@ cloudinary.config({
     api_secret: process.env.CLOUD_SECRET,
 });
 
-app.use(cors(corsConfig))
-app.options("", cors(corsConfig))
 
 // Vefify JWT Token
 const verifyJWT = (req, res, next) => {
@@ -55,14 +62,16 @@ const client = new MongoClient(uri, {
     }
 });
 
+let coursesCollection, coursesReviews, usersCollection, selectedClassCollection, paymentsCollection;
+
 async function run() {
     try {
         const database = client.db('shikhoDB');
-        const classesCollection = database.collection('classes');
-        const coursesReviews = database.collection('coursesReviews');
-        const usersCollection = database.collection('users');
-        const selectedClassCollection = database.collection('selectedClass');
-        const paymentsCollection = database.collection('payments');
+        coursesCollection = database.collection('classes');
+        coursesReviews = database.collection('coursesReviews');
+        usersCollection = database.collection('users');
+        selectedClassCollection = database.collection('selectedClass');
+        paymentsCollection = database.collection('payments');
 
         //JWT Token genarate
         app.post('/jwt', (req, res) => {
@@ -114,186 +123,186 @@ async function run() {
         });
 
         //Users API
-        //get all users
-        app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
-            const result = await usersCollection.find().toArray();
-            res.send(result)
-        })
+        // //get all users
+        // app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
+        //     const result = await usersCollection.find().toArray();
+        //     res.send(result)
+        // })
 
-        // get user info
-        app.get('/user/:email', verifyJWT, async (req, res) => {
-            const email = req.params.email;
-            const query = { email: email };
-            const user = await usersCollection.findOne(query);
-            res.send(user);
-        })
+        // // get user info
+        // app.get('/user/:email', verifyJWT, async (req, res) => {
+        //     const email = req.params.email;
+        //     const query = { email: email };
+        //     const user = await usersCollection.findOne(query);
+        //     res.send(user);
+        // })
 
-        app.get('/getSignupMethod/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { email: email };
-            const optoins = {
-                projection: { _id: 0, signupMethod: 1 }
-            };
-            const signupMethod = await usersCollection.findOne(query, optoins);
-            res.send(signupMethod);
-        })
+        // app.get('/getSignupMethod/:email', async (req, res) => {
+        //     const email = req.params.email;
+        //     const query = { email: email };
+        //     const optoins = {
+        //         projection: { _id: 0, signupMethod: 1 }
+        //     };
+        //     const signupMethod = await usersCollection.findOne(query, optoins);
+        //     res.send(signupMethod);
+        // })
 
-        //get user role api
-        app.get('/users/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { email: email };
-            const user = await usersCollection.findOne(query);
-            const result = await user?.role === 'student' && 'student' || user?.role === 'instructor' && 'instructor' || user?.role === 'admin' && 'admin';
-            res.send(result);
-        })
+        // //get user role api
+        // app.get('/users/:email', async (req, res) => {
+        //     const email = req.params.email;
+        //     const query = { email: email };
+        //     const user = await usersCollection.findOne(query);
+        //     const result = await user?.role === 'student' && 'student' || user?.role === 'instructor' && 'instructor' || user?.role === 'admin' && 'admin';
+        //     res.send(result);
+        // })
 
-        //add user api
-        app.post('/users', async (req, res) => {
-            const user = req.body;
-            const query = { email: user.email }
-            const existingUser = await usersCollection.findOne(query);
+        // //add user api
+        // app.post('/users', async (req, res) => {
+        //     const user = req.body;
+        //     const query = { email: user.email }
+        //     const existingUser = await usersCollection.findOne(query);
 
-            if (existingUser) {
-                return
-            }
-            const result = await usersCollection.insertOne(userData);
-            res.send(result)
-        })
+        //     if (existingUser) {
+        //         return
+        //     }
+        //     const result = await usersCollection.insertOne(userData);
+        //     res.send(result)
+        // })
 
-        // update user info
-        app.patch('/updateUser/:id', verifyJWT, async (req, res) => {
-            const id = req.params.id;
-            const updateInfo = req.body;
-            const { name, image } = updateInfo;
-            const filter = { _id: id };
-            const updateDoc = {
-                $set: {
-                    name,
-                    image
-                }
-            }
-            const result = await usersCollection.updateOne(filter, updateDoc);
-            res.send(result);
-        })
+        // // update user info
+        // app.patch('/updateUser/:id', verifyJWT, async (req, res) => {
+        //     const id = req.params.id;
+        //     const updateInfo = req.body;
+        //     const { name, image } = updateInfo;
+        //     const filter = { _id: id };
+        //     const updateDoc = {
+        //         $set: {
+        //             name,
+        //             image
+        //         }
+        //     }
+        //     const result = await usersCollection.updateOne(filter, updateDoc);
+        //     res.send(result);
+        // })
 
-        // update instructor profile info
-        app.patch('/updateInstructorProfile/:id', verifyJWT, async (req, res) => {
-            const id = req.params.id;
-            const updateInfo = req.body;
-            const info = { ...updateInfo };
-            console.log(info);
-            const filter = { _id: id };
-            const updateDoc = {
-                $set: info
-            }
-            const result = await usersCollection.updateOne(filter, updateDoc);
-            res.send(result);
-        })
+        // // update instructor profile info
+        // app.patch('/updateInstructorProfile/:id', verifyJWT, async (req, res) => {
+        //     const id = req.params.id;
+        //     const updateInfo = req.body;
+        //     const info = { ...updateInfo };
+        //     console.log(info);
+        //     const filter = { _id: id };
+        //     const updateDoc = {
+        //         $set: info
+        //     }
+        //     const result = await usersCollection.updateOne(filter, updateDoc);
+        //     res.send(result);
+        // })
 
 
-        //update user type/role 
-        app.patch('/users/:id', async (req, res) => {
-            const id = req.params.id;
-            const updateRole = req.body;
-            const { role } = updateRole;
-            const filter = { _id: id };
-            const updateDoc = {
-                $set: {
-                    role: role
-                }
-            }
-            const result = await usersCollection.updateOne(filter, updateDoc);
-            res.send(result)
-        })
+        // //update user type/role 
+        // app.patch('/users/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const updateRole = req.body;
+        //     const { role } = updateRole;
+        //     const filter = { _id: id };
+        //     const updateDoc = {
+        //         $set: {
+        //             role: role
+        //         }
+        //     }
+        //     const result = await usersCollection.updateOne(filter, updateDoc);
+        //     res.send(result)
+        // })
 
 
 
         //API FOR CLASS DATA
-        //get allClass Data
-        app.get('/allClasses', verifyJWT, verifyAdmin, async (req, res) => {
-            const result = await classesCollection.find().toArray();
-            res.send(result)
-        })
+        // //get allClass Data
+        // app.get('/allClasses', verifyJWT, verifyAdmin, async (req, res) => {
+        //     const result = await coursesCollection.find().toArray();
+        //     res.send(result)
+        // })
 
-        //get all approved Class Data
-        app.get('/classes', async (req, res) => {
-            const page = req.query.page;
-            const pageSize = parseInt(req.query.limit);
-            const sortValue = parseInt(req.query.sort);
-            const searchValue = req.query.search === "undefined" ? '' : req.query.search;
-            const skipDocument = (page - 1) * pageSize;
-            const query = { status: 'approved', name: { $regex: searchValue, $options: 'i' } };
-            const cursor = sortValue ? classesCollection.find(query).sort({ price: sortValue }).skip(skipDocument).limit(pageSize) : classesCollection.find(query).skip(skipDocument).limit(pageSize);
-            const classesCount = await classesCollection.countDocuments(query);
-            const classes = await cursor.toArray();
-            res.send({ classes, classesCount })
-        })
+        // //get all approved Class Data
+        // app.get('/classes', async (req, res) => {
+        //     const page = req.query.page;
+        //     const pageSize = parseInt(req.query.limit);
+        //     const sortValue = parseInt(req.query.sort);
+        //     const searchValue = req.query.search === "undefined" ? '' : req.query.search;
+        //     const skipDocument = (page - 1) * pageSize;
+        //     const query = { status: 'approved', name: { $regex: searchValue, $options: 'i' } };
+        //     const cursor = sortValue ? classesCollection.find(query).sort({ price: sortValue }).skip(skipDocument).limit(pageSize) : classesCollection.find(query).skip(skipDocument).limit(pageSize);
+        //     const classesCount = await classesCollection.countDocuments(query);
+        //     const classes = await cursor.toArray();
+        //     res.send({ classes, classesCount })
+        // })
 
-        //get courses by instructor id
-        app.get('/courses/:id', verifyJWT, verifyInstructor, async (req, res) => {
-            const id = req.params.id;
-            const searchValue = req.query.search;
-            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
-            if (req.decoded.email !== instructorEmail?.email) {
-                return res.send({ error: true, message: 'Forbidden Access' })
-            }
-            const query = { _instructorId: id, courseName: { $regex: searchValue, $options: 'i' } };
-            const options = {
-                projection: {
-                    _instructorId: 1,
-                    courseName: 1,
-                    courseThumbnail: 1,
-                    price: 1,
-                    discount: 1,
-                    level: 1,
-                    status: 1,
-                    feedback: 1,
-                    publish: 1,
-                    rating: 1,
-                    totalReviews: 1
-                }
-            };
-            const courses = await classesCollection.find(query, options).toArray();
-            res.send(courses);
-        })
+        // //get courses by instructor id
+        // app.get('/courses/:id', verifyJWT, verifyInstructor, async (req, res) => {
+        //     const id = req.params.id;
+        //     const searchValue = req.query.search;
+        //     const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+        //     if (req.decoded.email !== instructorEmail?.email) {
+        //         return res.send({ error: true, message: 'Forbidden Access' })
+        //     }
+        //     const query = { _instructorId: id, courseName: { $regex: searchValue, $options: 'i' } };
+        //     const options = {
+        //         projection: {
+        //             _instructorId: 1,
+        //             courseName: 1,
+        //             courseThumbnail: 1,
+        //             price: 1,
+        //             discount: 1,
+        //             level: 1,
+        //             status: 1,
+        //             feedback: 1,
+        //             publish: 1,
+        //             rating: 1,
+        //             totalReviews: 1
+        //         }
+        //     };
+        //     const courses = await classesCollection.find(query, options).toArray();
+        //     res.send(courses);
+        // })
 
-        //get course by instructor id
-        app.get('/course', verifyJWT, verifyInstructor, async (req, res) => {
-            const courseId = req.query.courseId
-            const id = req.query.id;
-            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
-            if (req.decoded.email !== instructorEmail?.email) {
-                return res.send({ error: true, message: 'Forbidden Access' })
-            }
-            const query = { _id: new ObjectId(courseId) };
-            const options = {
-                projection: {
-                    courseName: 1,
-                    courseThumbnail: 1,
-                    shortDescription: 1,
-                    description: 1,
-                    level: 1,
-                    category: 1,
-                    price: 1,
-                    discount: 1,
-                    seats: 1,
-                    courseContents: 1
-                }
-            };
-            const result = await classesCollection.findOne(query, options);
-            res.send(result)
-        })
+        // //get course by instructor id
+        // app.get('/course', verifyJWT, verifyInstructor, async (req, res) => {
+        //     const courseId = req.query.courseId
+        //     const id = req.query.id;
+        //     const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+        //     if (req.decoded.email !== instructorEmail?.email) {
+        //         return res.send({ error: true, message: 'Forbidden Access' })
+        //     }
+        //     const query = { _id: new ObjectId(courseId) };
+        //     const options = {
+        //         projection: {
+        //             courseName: 1,
+        //             courseThumbnail: 1,
+        //             shortDescription: 1,
+        //             description: 1,
+        //             level: 1,
+        //             category: 1,
+        //             price: 1,
+        //             discount: 1,
+        //             seats: 1,
+        //             courseContents: 1
+        //         }
+        //     };
+        //     const result = await classesCollection.findOne(query, options);
+        //     res.send(result)
+        // })
 
-        //get topClass Data
-        app.get('/topclass', async (req, res) => {
-            const query = {};
-            const options = {
-                sort: { 'students': -1 }
-            }
-            const cursor = classesCollection.find(query, options);
-            const result = await cursor.limit(6).toArray();
-            res.send(result)
-        })
+        // //get topClass Data
+        // app.get('/topclass', async (req, res) => {
+        //     const query = {};
+        //     const options = {
+        //         sort: { 'students': -1 }
+        //     }
+        //     const cursor = classesCollection.find(query, options);
+        //     const result = await cursor.limit(6).toArray();
+        //     res.send(result)
+        // })
 
         //get selected class 
         app.get('/selectedClass/:email', verifyJWT, async (req, res) => {
@@ -305,18 +314,18 @@ async function run() {
             res.send(result)
         })
 
-        //Add new Class api
-        app.post('/classes', verifyJWT, verifyInstructor, async (req, res) => {
-            const newCourse = req.body;
-            const modifiedCourse = {
-                ...newCourse,
-                students: 0,
-                status: 'pending',
-                feedback: ''
-            }
-            const result = await classesCollection.insertOne(modifiedCourse);
-            res.send(result);
-        })
+        // //Add new Class api
+        // app.post('/classes', verifyJWT, verifyInstructor, async (req, res) => {
+        //     const newCourse = req.body;
+        //     const modifiedCourse = {
+        //         ...newCourse,
+        //         students: 0,
+        //         status: 'pending',
+        //         feedback: ''
+        //     }
+        //     const result = await classesCollection.insertOne(modifiedCourse);
+        //     res.send(result);
+        // })
 
         //Add Selected class
         app.post('/selectClass/:id', verifyJWT, async (req, res) => {
@@ -338,41 +347,41 @@ async function run() {
 
         })
 
-        //Update course data by id
-        app.patch('/updateCourse', verifyJWT, verifyInstructor, async (req, res) => {
-            const courseId = req.query.courseId
-            const id = req.query.id;
-            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
-            if (req.decoded.email !== instructorEmail?.email) {
-                return res.send({ error: true, message: 'Forbidden Access' })
-            }
-            const updatedCourseData = req.body;
-            const filter = { _id: new ObjectId(courseId) };
-            const updateDoc = {
-                $set: updatedCourseData
-            }
-            const result = await classesCollection.updateOne(filter, updateDoc)
-            res.send(result);
-        })
+        // //Update course data by id
+        // app.patch('/updateCourse', verifyJWT, verifyInstructor, async (req, res) => {
+        //     const courseId = req.query.courseId
+        //     const id = req.query.id;
+        //     const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+        //     if (req.decoded.email !== instructorEmail?.email) {
+        //         return res.send({ error: true, message: 'Forbidden Access' })
+        //     }
+        //     const updatedCourseData = req.body;
+        //     const filter = { _id: new ObjectId(courseId) };
+        //     const updateDoc = {
+        //         $set: updatedCourseData
+        //     }
+        //     const result = await classesCollection.updateOne(filter, updateDoc)
+        //     res.send(result);
+        // })
 
-        // Update Course publish status by id
-        app.patch('/updatePublishStatus', verifyJWT, verifyInstructor, async (req, res) => {
-            const courseId = req.query.courseId
-            const id = req.query.id;
-            const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
-            if (req.decoded.email !== instructorEmail?.email) {
-                return res.send({ error: true, message: 'Forbidden Access' })
-            }
-            const { publish } = req.body;
-            const filter = { _id: new ObjectId(courseId) };
-            const updateDoc = {
-                $set: {
-                    publish: publish
-                }
-            }
-            const result = await classesCollection.updateOne(filter, updateDoc)
-            res.send(result);
-        })
+        // // Update Course publish status by id
+        // app.patch('/updatePublishStatus', verifyJWT, verifyInstructor, async (req, res) => {
+        //     const courseId = req.query.courseId
+        //     const id = req.query.id;
+        //     const instructorEmail = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, email: 1 } });
+        //     if (req.decoded.email !== instructorEmail?.email) {
+        //         return res.send({ error: true, message: 'Forbidden Access' })
+        //     }
+        //     const { publish } = req.body;
+        //     const filter = { _id: new ObjectId(courseId) };
+        //     const updateDoc = {
+        //         $set: {
+        //             publish: publish
+        //         }
+        //     }
+        //     const result = await classesCollection.updateOne(filter, updateDoc)
+        //     res.send(result);
+        // })
 
         //Update class feedback by id
         app.patch('/feedback/:id', verifyJWT, verifyAdmin, async (req, res) => {
@@ -639,10 +648,36 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/', (req, res) => {
-    res.send('server is running');
-})
+// app.listen(port, () => {
+//     console.log('server running on port: ', port);
+// })
 
-app.listen(port, () => {
-    console.log('server running on port: ', port);
-})
+
+
+// Connect to MongoDB
+client.connect()
+    .then(() => {
+        const database = client.db('shikhoDB');
+        coursesCollection = database.collection('classes');
+        coursesReviews = database.collection('coursesReviews');
+        usersCollection = database.collection('users');
+        selectedClassCollection = database.collection('selectedClass');
+        paymentsCollection = database.collection('payments');
+
+        app.get('/', (req, res) => {
+            res.send('server is running');
+        })
+
+        app.listen(port, () => {
+            console.log(`Server running on port: ${port}`);
+        });
+    })
+    .catch(err => {
+        console.error('Failed to connect to MongoDB', err)
+    });
+
+export { coursesCollection, coursesReviews, usersCollection, selectedClassCollection, paymentsCollection };
+
+// API Routes
+// app.use('/api/v1/user', userRouter);
+// app.use('/api/v1/course', courseRouter);
