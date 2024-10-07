@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { v2 as cloudinary } from 'cloudinary';
 import courseRouter from './routes/courseRouter.js';
+import cartRouter from './routes/cartRouter.js';
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
@@ -62,7 +63,7 @@ const client = new MongoClient(uri, {
     }
 });
 
-let coursesCollection, coursesReviews, usersCollection, selectedClassCollection, paymentsCollection;
+let coursesCollection, coursesReviews, usersCollection, cart, paymentsCollection;
 
 async function run() {
     try {
@@ -70,7 +71,7 @@ async function run() {
         coursesCollection = database.collection('classes');
         coursesReviews = database.collection('coursesReviews');
         usersCollection = database.collection('users');
-        selectedClassCollection = database.collection('selectedClass');
+        cart = database.collection('selectedClass');
         paymentsCollection = database.collection('payments');
 
         //JWT Token genarate
@@ -304,15 +305,15 @@ async function run() {
         //     res.send(result)
         // })
 
-        //get selected class 
-        app.get('/selectedClass/:email', verifyJWT, async (req, res) => {
-            const email = req.params.email;
-            const query = {
-                email: email
-            }
-            const result = await selectedClassCollection.find(query).toArray();
-            res.send(result)
-        })
+        // //get selected class 
+        // app.get('/selectedClass/:email', verifyJWT, async (req, res) => {
+        //     const email = req.params.email;
+        //     const query = {
+        //         email: email
+        //     }
+        //     const result = await cart.find(query).toArray();
+        //     res.send(result)
+        // })
 
         // //Add new Class api
         // app.post('/classes', verifyJWT, verifyInstructor, async (req, res) => {
@@ -327,25 +328,25 @@ async function run() {
         //     res.send(result);
         // })
 
-        //Add Selected class
-        app.post('/selectClass/:id', verifyJWT, async (req, res) => {
-            const id = req.params.id;
-            const { email } = req.body;
-            const query = { _id: new ObjectId(id) };
-            const options = {
-                projection: { _id: 0, name: 1, image: 1, price: 1, instructorName: 1 }
-            }
-            const classData = await classesCollection.findOne(query, options)
-            classData.email = email;
-            classData.classId = id;
-            const existingClass = await selectedClassCollection.findOne(classData)
-            if (existingClass) {
-                return res.send({ error: true, message: 'class already added' })
-            }
-            const result = await selectedClassCollection.insertOne(classData);
-            res.send(result);
+        // //Add Selected class
+        // app.post('/selectClass/:id', verifyJWT, async (req, res) => {
+        //     const id = req.params.id;
+        //     const { email } = req.body;
+        //     const query = { _id: new ObjectId(id) };
+        //     const options = {
+        //         projection: { _id: 0, name: 1, image: 1, price: 1, instructorName: 1 }
+        //     }
+        //     const classData = await classesCollection.findOne(query, options)
+        //     classData.email = email;
+        //     classData.classId = id;
+        //     const existingClass = await cart.findOne(classData)
+        //     if (existingClass) {
+        //         return res.send({ error: true, message: 'class already added' })
+        //     }
+        //     const result = await cart.insertOne(classData);
+        //     res.send(result);
 
-        })
+        // })
 
         // //Update course data by id
         // app.patch('/updateCourse', verifyJWT, verifyInstructor, async (req, res) => {
@@ -428,12 +429,12 @@ async function run() {
         //     res.send(result);
         // })
 
-        app.delete('/selectedClass/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await selectedClassCollection.deleteOne(query);
-            res.send(result)
-        })
+        // app.delete('/selectedClass/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: new ObjectId(id) };
+        //     const result = await cart.deleteOne(query);
+        //     res.send(result)
+        // })
 
         // Api for course Reviews
 
@@ -621,7 +622,7 @@ async function run() {
             const insertPayment = await paymentsCollection.insertOne(payment);
 
             const query = { _id: new ObjectId(id) };
-            const deleteResult = await selectedClassCollection.deleteOne(query)
+            const deleteResult = await cart.deleteOne(query)
 
             const classQuery = { _id: new ObjectId(classId) }
             const findClass = await classesCollection.findOne(classQuery)
@@ -661,7 +662,7 @@ client.connect()
         coursesCollection = database.collection('classes');
         coursesReviews = database.collection('coursesReviews');
         usersCollection = database.collection('users');
-        selectedClassCollection = database.collection('selectedClass');
+        cart = database.collection('selectedClass');
         paymentsCollection = database.collection('payments');
 
         app.get('/', (req, res) => {
@@ -676,8 +677,9 @@ client.connect()
         console.error('Failed to connect to MongoDB', err)
     });
 
-export { coursesCollection, coursesReviews, usersCollection, selectedClassCollection, paymentsCollection };
+export { coursesCollection, coursesReviews, usersCollection, cart, paymentsCollection };
 
 // API Routes
 // app.use('/api/v1/user', userRouter);
 // app.use('/api/v1/course', courseRouter);
+// app.use('/api/v1/cart', cartRouter);
