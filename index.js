@@ -10,6 +10,7 @@ import Stripe from 'stripe';
 import { v2 as cloudinary } from 'cloudinary';
 import courseRouter from './routes/courseRouter.js';
 import cartRouter from './routes/cartRouter.js';
+import reviewRouter from './routes/reviewRouter.js';
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
@@ -63,13 +64,13 @@ const client = new MongoClient(uri, {
     }
 });
 
-let coursesCollection, coursesReviews, usersCollection, cart, paymentsCollection;
+let coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection;
 
 async function run() {
     try {
         const database = client.db('shikhoDB');
         coursesCollection = database.collection('classes');
-        coursesReviews = database.collection('coursesReviews');
+        reviewsCollection = database.collection('coursesReviews');
         usersCollection = database.collection('users');
         cart = database.collection('selectedClass');
         paymentsCollection = database.collection('payments');
@@ -438,99 +439,99 @@ async function run() {
 
         // Api for course Reviews
 
-        // get course reviews by courseID
-        app.get('/courseReviews/:courseId', async (req, res) => {
-            const courseId = req.params.courseId;
-            const query = { _courseId: courseId };
-            const options = {
-                projection: {
-                    _id: 0,
-                    userName: 1,
-                    userImage: 1,
-                    rating: 1,
-                    reviewDate: 1,
-                    reviewData: 1,
-                }
-            }
-            const reviews = await coursesReviews.find(query, options).toArray();
-            res.status(200).send(reviews);
-        })
+        // // get course reviews by courseID
+        // app.get('/courseReviews/:courseId', async (req, res) => {
+        //     const courseId = req.params.courseId;
+        //     const query = { _courseId: courseId };
+        //     const options = {
+        //         projection: {
+        //             _id: 0,
+        //             userName: 1,
+        //             userImage: 1,
+        //             rating: 1,
+        //             reviewDate: 1,
+        //             reviewData: 1,
+        //         }
+        //     }
+        //     const reviews = await reviewsCollection.find(query, options).toArray();
+        //     res.status(200).send(reviews);
+        // })
 
-        // get course reviews by courseID
-        app.get('/courseReviews/:courseId', async (req, res) => {
-            const courseId = req.params.courseId;
-            const query = { _courseId: courseId };
-            const options = {
-                projection: {
-                    _id: 0,
-                    userName: 1,
-                    userImage: 1,
-                    rating: 1,
-                    date: 1,
-                    review: 1,
-                }
-            }
-            const reviews = await coursesReviews.find(query, options).toArray();
-            res.status(200).send(reviews);
-        })
+        // // get course reviews by courseID
+        // app.get('/courseReviews/:courseId', async (req, res) => {
+        //     const courseId = req.params.courseId;
+        //     const query = { _courseId: courseId };
+        //     const options = {
+        //         projection: {
+        //             _id: 0,
+        //             userName: 1,
+        //             userImage: 1,
+        //             rating: 1,
+        //             date: 1,
+        //             review: 1,
+        //         }
+        //     }
+        //     const reviews = await reviewsCollection.find(query, options).toArray();
+        //     res.status(200).send(reviews);
+        // })
 
-        // get course reviews by instructorId
-        app.get('/instructorCoursesReviews/:instructorId', async (req, res) => {
-            const instructorId = req.params.instructorId;
-            const searchValue = req.query.search || '';
-            const limit = parseInt(req.query.limit) || 4;
-            const query = {
-                _instructorId: instructorId,
-                $or: [
-                    { courseName: { $regex: searchValue, $options: 'i' } },
-                    { userName: { $regex: searchValue, $options: 'i' } }
-                ]
-            };
+        // // get course reviews by instructorId
+        // app.get('/instructorCoursesReviews/:instructorId', async (req, res) => {
+        //     const instructorId = req.params.instructorId;
+        //     const searchValue = req.query.search || '';
+        //     const limit = parseInt(req.query.limit) || 4;
+        //     const query = {
+        //         _instructorId: instructorId,
+        //         $or: [
+        //             { courseName: { $regex: searchValue, $options: 'i' } },
+        //             { userName: { $regex: searchValue, $options: 'i' } }
+        //         ]
+        //     };
 
-            const options = {
-                projection: {
-                    _id: 0,
-                    userName: 1,
-                    userImage: 1,
-                    courseName: 1,
-                    rating: 1,
-                    date: 1,
-                    review: 1,
-                }
-            }
-            const cursor = coursesReviews.find(query, options).limit(limit);
-            const totalReviews = await coursesReviews.countDocuments(query);
-            const reviews = await cursor.toArray();
-            res.status(200).send({ reviews, totalReviews });
-        })
+        //     const options = {
+        //         projection: {
+        //             _id: 0,
+        //             userName: 1,
+        //             userImage: 1,
+        //             courseName: 1,
+        //             rating: 1,
+        //             date: 1,
+        //             review: 1,
+        //         }
+        //     }
+        //     const cursor = reviewsCollection.find(query, options).limit(limit);
+        //     const totalReviews = await reviewsCollection.countDocuments(query);
+        //     const reviews = await cursor.toArray();
+        //     res.status(200).send({ reviews, totalReviews });
+        // })
 
-        // Add review by courseID
-        app.post('/addReviews', async (req, res) => {
-            const reviewData = req.body;
-            const result = await coursesReviews.insertOne(reviewData);
+        // // Add review by courseID
+        // app.post('/addReviews', async (req, res) => {
+        //     const reviewData = req.body;
+        //     const result = await reviewsCollection.insertOne(reviewData);
 
-            const courseId = reviewData?._courseId;
-            const query = { _courseId: courseId };
-            const options = {
-                projection: { _id: 0, rating: 1 }
-            }
-            const ratings = await coursesReviews.find(query, options).toArray(); //retrive rating of course 
-            const ratingsArr = ratings.map(rating => rating.rating);
+        //     const courseId = reviewData?._courseId;
+        //     const query = { _courseId: courseId };
+        //     const options = {
+        //         projection: { _id: 0, rating: 1 }
+        //     }
+        //     const ratings = await reviewsCollection.find(query, options).toArray(); //retrive rating of course 
+        //     const ratingsArr = ratings.map(rating => rating.rating);
 
-            const totalReviews = ratingsArr.length;
-            const rating = parseFloat((ratingsArr.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / totalReviews).toFixed(1));
-            console.log(rating, totalReviews)
-            const filter = { _id: new ObjectId(courseId) }
-            const updateCourseRating = {
-                $set: {
-                    rating,
-                    totalReviews
-                }
-            }
-            await classesCollection.updateOne(filter, updateCourseRating);
+        //     const totalReviews = ratingsArr.length;
+        //     const rating = parseFloat((ratingsArr.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / totalReviews).toFixed(1));
+        //     console.log(rating, totalReviews)
+        //     const filter = { _id: new ObjectId(courseId) }
+        //     const updateCourseRating = {
+        //         $set: {
+        //             rating,
+        //             totalReviews
+        //         }
+        //     }
+        //     await classesCollection.updateOne(filter, updateCourseRating);
 
-            res.send(result);
-        })
+        //     res.send(result);
+        // })
 
 
         //API FOR INSTRUCTOR DATA
@@ -660,7 +661,7 @@ client.connect()
     .then(() => {
         const database = client.db('shikhoDB');
         coursesCollection = database.collection('classes');
-        coursesReviews = database.collection('coursesReviews');
+        reviewsCollection = database.collection('coursesReviews');
         usersCollection = database.collection('users');
         cart = database.collection('selectedClass');
         paymentsCollection = database.collection('payments');
@@ -677,9 +678,10 @@ client.connect()
         console.error('Failed to connect to MongoDB', err)
     });
 
-export { coursesCollection, coursesReviews, usersCollection, cart, paymentsCollection };
+export { coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection };
 
 // API Routes
 // app.use('/api/v1/user', userRouter);
 // app.use('/api/v1/course', courseRouter);
 // app.use('/api/v1/cart', cartRouter);
+// app.use('/api/v1/review', reviewRouter);
