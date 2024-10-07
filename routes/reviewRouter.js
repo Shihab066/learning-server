@@ -10,7 +10,7 @@ reviewRouter.get('/get/:courseId', getCourseReviews);
 reviewRouter.get('/instructor/:instructorId', getInstructorReviews);
 
 // add review by courseID. Add a logic to check if the user really enrolled the course
-app.post('/add', addReview);
+reviewRouter.post('/add', addReview);
 
 
 export default reviewRouter;

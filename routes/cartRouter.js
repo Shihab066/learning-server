@@ -10,7 +10,7 @@ cartRouter.get('/get/:studentId', getCartItemById);
 cartRouter.post('/add/:studentId', addCourseToCart);
 
 // delete cart item by itemId. JWT verfiy need
-app.delete('/delete/:id', deleteCartItem);
+cartRouter.delete('/delete/:id', deleteCartItem);
 
 
 export default cartRouter;
