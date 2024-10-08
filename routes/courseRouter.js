@@ -34,6 +34,6 @@ courseRouter.patch('/updatefeedback/:id', updateCourseFeedback);
 courseRouter.patch('/status/:id', updateCourseApprovedStatus);
 
 //delete course by courseId. Instructor verify need
-app.delete('/delete', deleteCourse);
+courseRouter.delete('/delete', deleteCourse);
 
 export default courseRouter;

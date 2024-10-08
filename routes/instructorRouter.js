@@ -1,5 +1,5 @@
 import express from 'express';
-import { getInstructors, getPopularInstructors } from '../controllers/instructorController';
+import { getInstructors, getPopularInstructors } from '../controllers/instructorController.js';
 
 const instructorRouter = express.Router();
 

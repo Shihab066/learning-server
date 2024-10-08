@@ -22,7 +22,7 @@ export const verifyToken = (req, res, next) => {
             if (error) {
                 return res.status(401).json({ error: true, message: 'Unauthorized Access' });
             }
-            req.decoded = decoded;
+            req.decoded = decoded;            
             next();
         });
     } catch (error) {

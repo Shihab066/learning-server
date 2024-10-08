@@ -1,15 +1,16 @@
 import { usersCollection } from "../index.js";
+import { authorizeUser, authorizeAdmin, authorizeInstructor } from "./authorizationController.js";
 
 export const getUserById = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await usersCollection.findOne({ _id: id });
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
+        const authorizeStatus = await authorizeUser(id, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const user = await usersCollection.findOne({ _id: id }, { projection: { email: 0 } });
+            res.status(200).json(user);
         }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
 
-        res.status(200).json(user);
     } catch (error) {
         console.error("Error fetching user:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -18,11 +19,16 @@ export const getUserById = async (req, res) => {
 
 export const getUsers = async (req, res) => {
     try {
-        const users = await usersCollection.find().toArray();
-        if (users.length === 0) {
-            return res.status(404).json({ message: "No users found" });
+        const { adminId } = req.params;
+        const authorizeStatus = await authorizeAdmin(adminId, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const users = await usersCollection.find().toArray();
+            if (users.length === 0) {
+                return res.status(404).json({ message: "No users found" });
+            }
+            res.status(200).json(users);
         }
-        res.status(200).json(users);
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error fetching users:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -51,13 +57,17 @@ export const getSignupMethodById = async (req, res) => {
 export const getUserRoleById = async (req, res) => {
     try {
         const { id } = req.params;
-        const role = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, role: 1 } });
+        const authorizeStatus = await authorizeUser(id, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const role = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, role: 1 } });
 
-        if (!role) {
-            return res.status(404).json({ message: "User role not found" });
+            if (!role) {
+                return res.status(404).json({ message: "User role not found" });
+            }
+
+            res.status(200).json(role);
         }
-
-        res.status(200).json(role);
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error fetching user role:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -66,29 +76,33 @@ export const getUserRoleById = async (req, res) => {
 
 export const updateUserById = async (req, res) => {
     try {
-        const id = req.params.id;
-        const updateInfo = req.body;
+        const { id } = req.params;
+        const authorizeStatus = await authorizeUser(id, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const { name, image } = req.body;
 
-        // Check if required fields are present
-        if (!updateInfo.name || !updateInfo.image) {
-            return res.status(400).json({ message: "Name and image are required." });
-        }
-
-        const filter = { _id: id };
-        const updateDoc = {
-            $set: {
-                name: updateInfo.name,
-                image: updateInfo.image
+            // Check if required fields are present
+            if (!name || !image) {
+                return res.status(400).json({ message: "Name and image are required." });
             }
-        };
 
-        const result = await usersCollection.updateOne(filter, updateDoc);
+            const filter = { _id: id };
+            const updateDoc = {
+                $set: {
+                    name,
+                    image
+                }
+            };
 
-        if (result.modifiedCount === 0) {
-            return res.status(404).json({ message: "User not found or no changes made." });
+            const result = await usersCollection.updateOne(filter, updateDoc);
+
+            if (result.modifiedCount === 0) {
+                return res.status(404).json({ message: "User not found or no changes made." });
+            }
+
+            res.status(200).json({ message: "User updated successfully.", result });
         }
-
-        res.status(200).json({ message: "User updated successfully.", result });
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error updating user:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -97,19 +111,23 @@ export const updateUserById = async (req, res) => {
 
 export const updateInstructorProfileById = async (req, res) => {
     try {
-        const id = req.params.id;
-        const updateInfo = req.body;       
+        const { id } = req.params;
+        const authorizeStatus = await authorizeInstructor(id, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const updateInfo = req.body;
 
-        const filter = { _id: id };
-        const updateDoc = { $set: { ...updateInfo } };
+            const filter = { _id: id };
+            const updateDoc = { $set: { ...updateInfo } };
 
-        const result = await usersCollection.updateOne(filter, updateDoc);
+            const result = await usersCollection.updateOne(filter, updateDoc);
 
-        if (result.modifiedCount === 0) {
-            return res.status(404).json({ message: "User not found or no changes made." });
+            if (result.modifiedCount === 0) {
+                return res.status(404).json({ message: "User not found or no changes made." });
+            }
+
+            res.status(200).json({ message: "User updated successfully.", result });
         }
-
-        res.status(200).json({ message: "User updated successfully.", result });
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error updating user:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -119,62 +137,28 @@ export const updateInstructorProfileById = async (req, res) => {
 export const updateUserRoleById = async (req, res) => {
     try {
         const id = req.params.id;
-        const { role } = req.body;
+        const authorizeStatus = await authorizeAdmin(id, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const { role } = req.body;
 
-        if (!role) {
-            return res.status(400).json({ message: "Role is required." });
+            if (!role) {
+                return res.status(400).json({ message: "Role is required." });
+            }
+
+            const filter = { _id: id };
+            const updateDoc = { $set: { role } };
+
+            const result = await usersCollection.updateOne(filter, updateDoc);
+
+            if (result.modifiedCount === 0) {
+                return res.status(404).json({ message: "User not found or no changes made." });
+            }
+
+            res.status(200).json({ message: "User role updated successfully.", result });
         }
-
-        const filter = { _id: id };
-        const updateDoc = { $set: { role } };
-
-        const result = await usersCollection.updateOne(filter, updateDoc);
-
-        if (result.modifiedCount === 0) {
-            return res.status(404).json({ message: "User not found or no changes made." });
-        }
-
-        res.status(200).json({ message: "User role updated successfully.", result });
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error updating user role:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
-    }
-};
-
-export const verifyInstructor = async (req, res, next) => {
-    try {
-        const email = req.decoded?.email;
-        if (!email) {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
-        }
-
-        const user = await usersCollection.findOne({ email });
-        if (user?.role !== 'instructor') {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
-        }
-
-        next();
-    } catch (error) {
-        console.error("Error verifying instructor:", error);
-        res.status(500).json({ error: true, message: 'Internal server error' });
-    }
-};
-
-export const verifyAdmin = async (req, res, next) => {
-    try {
-        const email = req.decoded?.email;
-        if (!email) {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
-        }
-
-        const user = await usersCollection.findOne({ email });
-        if (user?.role !== 'admin') {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
-        }
-
-        next();
-    } catch (error) {
-        console.error("Error verifying admin:", error);
-        res.status(500).json({ error: true, message: 'Internal server error' });
     }
 };

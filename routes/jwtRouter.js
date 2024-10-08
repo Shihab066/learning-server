@@ -1,5 +1,5 @@
 import express from "express";
-import { generateToken } from "../controllers/jwtController";
+import { generateToken } from "../controllers/jwtController.js";
 
 const jwtRouter = express.Router();
 
