@@ -5,12 +5,12 @@ import dotenv from 'dotenv';
 import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
 import cors from 'cors';
 import Stripe from 'stripe';
-import { v2 as cloudinary } from 'cloudinary';
 import courseRouter from './routes/courseRouter.js';
 import cartRouter from './routes/cartRouter.js';
 import reviewRouter from './routes/reviewRouter.js';
 import instructorRouter from './routes/instructorRouter.js';
 import jwtRouter from './routes/jwtRouter.js';
+import imageUploadRouter from './routes/imageUploadRouter.js';
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
@@ -26,12 +26,12 @@ const corsConfig = {
 app.use(cors(corsConfig))
 app.options("", cors(corsConfig))
 
-// Configure Cloudinary
-cloudinary.config({
-    cloud_name: process.env.CLOUD_NAME,
-    api_key: process.env.CLOUD_API_KEY,
-    api_secret: process.env.CLOUD_SECRET,
-});
+// // Configure Cloudinary
+// cloudinary.config({
+//     cloud_name: process.env.CLOUD_NAME,
+//     api_key: process.env.CLOUD_API_KEY,
+//     api_secret: process.env.CLOUD_SECRET,
+// });
 
 
 // // Vefify JWT Token
@@ -53,7 +53,7 @@ cloudinary.config({
 
 
 //MONGO_DB
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cxwtjms.mongodb.net/?retryWrites=true&w=majority`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cxwtjms.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(process.env.MONGODB_URI, {
@@ -105,24 +105,24 @@ async function run() {
         //     next();
         // }
 
-        // Get image upload singature
-        app.get('/get-signature', verifyJWT, (req, res) => {
-            const timestamp = Math.round(new Date().getTime() / 1000);
+        // // Get image upload singature
+        // app.get('/get-signature', verifyJWT, (req, res) => {
+        //     const timestamp = Math.round(new Date().getTime() / 1000);
 
-            // Generate signature for unsigned upload
-            const signature = cloudinary.utils.api_sign_request(
-                { timestamp: timestamp, upload_preset: process.env.UPLOAD_PRESET },
-                cloudinary.config().api_secret
-            );
+        //     // Generate signature for unsigned upload
+        //     const signature = cloudinary.utils.api_sign_request(
+        //         { timestamp: timestamp, upload_preset: process.env.UPLOAD_PRESET },
+        //         cloudinary.config().api_secret
+        //     );
 
-            res.json({
-                signature,
-                timestamp,
-                cloud_name: cloudinary.config().cloud_name,
-                cloud_api: cloudinary.config().api_key,
-                upload_preset: process.env.UPLOAD_PRESET
-            });
-        });
+        //     res.json({
+        //         signature,
+        //         timestamp,
+        //         cloud_name: cloudinary.config().cloud_name,
+        //         cloud_api: cloudinary.config().api_key,
+        //         upload_preset: process.env.UPLOAD_PRESET
+        //     });
+        // });
 
         //Users API
         // //get all users
@@ -646,7 +646,7 @@ async function run() {
         // await client.close();
     }
 }
-run().catch(console.dir);
+// run().catch(console.dir);
 
 
 // app.listen(port, () => {
@@ -690,3 +690,4 @@ app.use('/api/v1/course', courseRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/review', reviewRouter);
 app.use('/api/v1/jwt', jwtRouter);
+app.use('/api/v1/image/upload', imageUploadRouter);
