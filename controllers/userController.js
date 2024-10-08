@@ -140,3 +140,41 @@ export const updateUserRoleById = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+export const verifyInstructor = async (req, res, next) => {
+    try {
+        const email = req.decoded?.email;
+        if (!email) {
+            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+        }
+
+        const user = await usersCollection.findOne({ email });
+        if (user?.role !== 'instructor') {
+            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+        }
+
+        next();
+    } catch (error) {
+        console.error("Error verifying instructor:", error);
+        res.status(500).json({ error: true, message: 'Internal server error' });
+    }
+};
+
+export const verifyAdmin = async (req, res, next) => {
+    try {
+        const email = req.decoded?.email;
+        if (!email) {
+            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+        }
+
+        const user = await usersCollection.findOne({ email });
+        if (user?.role !== 'admin') {
+            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+        }
+
+        next();
+    } catch (error) {
+        console.error("Error verifying admin:", error);
+        res.status(500).json({ error: true, message: 'Internal server error' });
+    }
+};

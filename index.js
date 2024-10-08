@@ -1,17 +1,16 @@
-
 import userRouter from './routes/userRouter.js';
 
 import express from 'express';
 import dotenv from 'dotenv';
 import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
 import cors from 'cors';
-import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import { v2 as cloudinary } from 'cloudinary';
 import courseRouter from './routes/courseRouter.js';
 import cartRouter from './routes/cartRouter.js';
 import reviewRouter from './routes/reviewRouter.js';
 import instructorRouter from './routes/instructorRouter.js';
+import jwtRouter from './routes/jwtRouter.js';
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
@@ -35,29 +34,29 @@ cloudinary.config({
 });
 
 
-// Vefify JWT Token
-const verifyJWT = (req, res, next) => {
-    const authorization = req.headers.authorization;
-    if (!authorization) {
-        return res.status(401).send({ error: true, message: 'Unauthorized Access' });
-    }
-    const token = authorization.split(' ')[1];
+// // Vefify JWT Token
+// const verifyJWT = (req, res, next) => {
+//     const authorization = req.headers.authorization;
+//     if (!authorization) {
+//         return res.status(401).send({ error: true, message: 'Unauthorized Access' });
+//     }
+//     const token = authorization.split(' ')[1];
 
-    jwt.verify(token, process.env.SECRET_TOKEN, (error, decoded) => {
-        if (error) {
-            return res.status(401).send({ error: true, message: 'Unauthorized Access' })
-        }
-        req.decoded = decoded;
-        next();
-    })
-}
+//     jwt.verify(token, process.env.SECRET_TOKEN, (error, decoded) => {
+//         if (error) {
+//             return res.status(401).send({ error: true, message: 'Unauthorized Access' })
+//         }
+//         req.decoded = decoded;
+//         next();
+//     })
+// }
 
 
 //MONGO_DB
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.cxwtjms.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
+const client = new MongoClient(process.env.MONGODB_URI, {
     serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
@@ -65,46 +64,46 @@ const client = new MongoClient(uri, {
     }
 });
 
-let coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection;
+// let coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection;
 
 async function run() {
     try {
-        const database = client.db('shikhoDB');
-        coursesCollection = database.collection('classes');
-        reviewsCollection = database.collection('coursesReviews');
-        usersCollection = database.collection('users');
-        cart = database.collection('selectedClass');
-        paymentsCollection = database.collection('payments');
+        // const database = client.db('shikhoDB');
+        // coursesCollection = database.collection('classes');
+        // reviewsCollection = database.collection('coursesReviews');
+        // usersCollection = database.collection('users');
+        // cart = database.collection('selectedClass');
+        // paymentsCollection = database.collection('payments');
 
-        //JWT Token genarate
-        app.post('/jwt', (req, res) => {
-            const user = req.body;
-            const token = jwt.sign(user, process.env.SECRET_TOKEN, { expiresIn: '12h' });
-            res.send({ token })
-        })
+        // //JWT Token genarate
+        // app.post('/jwt', (req, res) => {
+        //     const user = req.body;
+        //     const token = jwt.sign(user, process.env.SECRET_TOKEN, { expiresIn: '12h' });
+        //     res.send({ token })
+        // })
 
-        //Verify Instructor
-        const verifyInstructor = async (req, res, next) => {
-            const email = req.decoded?.email;
-            const query = { email: email }
-            const user = await usersCollection.findOne(query);
-            if (user?.role !== 'instructor') {
-                return res.status(403).json({ error: true, message: 'Forbidden Access' });
-            }
-            next();
-        }
+        // //Verify Instructor
+        // const verifyInstructor = async (req, res, next) => {
+        //     const email = req.decoded?.email;
+        //     const query = { email: email }
+        //     const user = await usersCollection.findOne(query);
+        //     if (user?.role !== 'instructor') {
+        //         return res.status(403).json({ error: true, message: 'Forbidden Access' });
+        //     }
+        //     next();
+        // }
 
 
-        //Verify Admin
-        const verifyAdmin = async (req, res, next) => {
-            const email = req.decoded?.email;
-            const query = { email: email }
-            const user = await usersCollection.findOne(query);
-            if (user?.role !== 'admin') {
-                return res.status(403).send({ error: true, message: 'Forbidden Access' });
-            }
-            next();
-        }
+        // //Verify Admin
+        // const verifyAdmin = async (req, res, next) => {
+        //     const email = req.decoded?.email;
+        //     const query = { email: email }
+        //     const user = await usersCollection.findOne(query);
+        //     if (user?.role !== 'admin') {
+        //         return res.status(403).send({ error: true, message: 'Forbidden Access' });
+        //     }
+        //     next();
+        // }
 
         // Get image upload singature
         app.get('/get-signature', verifyJWT, (req, res) => {
@@ -654,11 +653,11 @@ run().catch(console.dir);
 //     console.log('server running on port: ', port);
 // })
 
-
+let coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection;
 
 // Connect to MongoDB
 client.connect()
-    .then(() => {
+    .then(async () => {
         const database = client.db('shikhoDB');
         coursesCollection = database.collection('classes');
         reviewsCollection = database.collection('coursesReviews');
@@ -673,6 +672,10 @@ client.connect()
         app.listen(port, () => {
             console.log(`Server running on port: ${port}`);
         });
+
+        // Send a ping to confirm a successful connection
+        await client.db("admin").command({ ping: 1 });
+        console.log("Pinged your deployment. You successfully connected to MongoDB!");
     })
     .catch(err => {
         console.error('Failed to connect to MongoDB', err)
@@ -681,8 +684,9 @@ client.connect()
 export { coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection };
 
 // API Routes
-// app.use('/api/v1/user', userRouter);
-// app.use('/api/v1/instructor', instructorRouter);
-// app.use('/api/v1/course', courseRouter);
-// app.use('/api/v1/cart', cartRouter);
-// app.use('/api/v1/review', reviewRouter);
+app.use('/api/v1/user', userRouter);
+app.use('/api/v1/instructor', instructorRouter);
+app.use('/api/v1/course', courseRouter);
+app.use('/api/v1/cart', cartRouter);
+app.use('/api/v1/review', reviewRouter);
+app.use('/api/v1/jwt', jwtRouter);

@@ -1,5 +1,5 @@
-import express from 'express';
-import { addCourseToCart, deleteCartItem, getCartItemById } from '../controllers/cartController';
+import express from "express";
+import { addCourseToCart, deleteCartItem, getCartItemById } from '../controllers/cartController.js';
 
 const cartRouter = express.Router();
 
@@ -11,6 +11,5 @@ cartRouter.post('/add/:studentId', addCourseToCart);
 
 // delete cart item by itemId. JWT verfiy need
 cartRouter.delete('/delete/:id', deleteCartItem);
-
 
 export default cartRouter;
