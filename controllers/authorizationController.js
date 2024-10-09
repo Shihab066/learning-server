@@ -55,7 +55,7 @@ export const authorizeUser = async (userId, decodedEmail) => {
 export const authorizeInstructor = async (userId, decodedEmail) => {
     const user = await usersCollection.findOne({ _id: userId }, { projection: { _id: 0, email: 1, role: 1 } });
     if (!user) {
-        return 404;
+        return 403;
     }
 
     if (user.email === decodedEmail && user.role === 'instructor') {
@@ -68,7 +68,7 @@ export const authorizeInstructor = async (userId, decodedEmail) => {
 export const authorizeAdmin = async (userId, decodedEmail) => {
     const user = await usersCollection.findOne({ _id: userId }, { projection: { _id: 0, email: 1, role: 1 } });
     if (!user) {
-        return 404;
+        return 403;
     }
 
     if (user.email === decodedEmail && user.role === 'admin') {

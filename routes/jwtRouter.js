@@ -1,10 +1,13 @@
 import express from "express";
-import { generateToken } from "../controllers/jwtController.js";
+import { generateToken, verifyAccessToken } from "../controllers/jwtController.js";
 
 const jwtRouter = express.Router();
 
 //genarate JWT Token
-jwtRouter.post('/get/token', generateToken);
+jwtRouter.post('/upload', generateToken);
+
+// verify access token
+jwtRouter.post('/verify', verifyAccessToken);
 
 
 export default jwtRouter;

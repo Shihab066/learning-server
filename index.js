@@ -689,5 +689,5 @@ app.use('/api/v1/instructor', instructorRouter);
 app.use('/api/v1/course', courseRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/review', reviewRouter);
-app.use('/api/v1/jwt', jwtRouter);
+app.use('/api/v1/token', jwtRouter);
 app.use('/api/v1/image/upload', imageUploadRouter);
