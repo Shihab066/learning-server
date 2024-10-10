@@ -1,6 +1,7 @@
 import express from 'express';
 import { v2 as cloudinary } from 'cloudinary';
 import { getSignature } from '../controllers/imageUploadController.js';
+import { verifyToken } from '../controllers/jwtController.js';
 
 const imageUploadRouter = express.Router();
 
@@ -11,7 +12,7 @@ cloudinary.config({
     api_secret: process.env.CLOUD_SECRET,
 });
 
-// get image upload singature. JWT verify need
-imageUploadRouter.get('/get-signature', getSignature);
+// get image upload singature.
+imageUploadRouter.get('/get-signature',verifyToken, getSignature);
 
 export default imageUploadRouter;

@@ -15,8 +15,8 @@ userRouter.get('/all/:adminId', verifyToken, verifyAdmin, getUsers);
 // get signupMethod by user id
 userRouter.get('/getSignupMethod/:id', getSignupMethodById);
 
-//get user role by id.
-userRouter.get('/role/:id', verifyToken, getUserRoleById);
+//get user role by userId.
+userRouter.get('/role/:id',verifyToken, getUserRoleById);
 
 // update user info.
 userRouter.patch('/update/:id', verifyToken, updateUserById);

@@ -1,5 +1,7 @@
 import express from 'express';
 import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getInstructorCourse, getInstructorCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCoursePublishStatus } from '../controllers/courseController.js';
+import { verifyToken } from '../controllers/jwtController.js';
+import { verifyAdmin, verifyInstructor } from '../controllers/authorizationController.js';
 
 const courseRouter = express.Router();
 
@@ -9,31 +11,31 @@ courseRouter.get('/top', getTopCourses);
 //get all approved courses data
 courseRouter.get('/all', getAllApprovedCourses);
 
-//get all course data. Admin verify need
-courseRouter.get('/all/admin', getAllCourses);
+//get all course data.
+courseRouter.get('/all/admin',verifyToken, verifyAdmin, getAllCourses);
 
-//get single course by instructor id. Instructor verify need
-courseRouter.get('/instructorCourse/:instructorId', getInstructorCourse);
+//get single course by instructor id.
+courseRouter.get('/instructorCourse/:instructorId',verifyToken, verifyInstructor, getInstructorCourse);
 
-//get all courses by instructor id. Instructor verify need
-courseRouter.get('/instructorCourses/:instructorId', getInstructorCourses);
+//get all courses by instructor id.
+courseRouter.get('/instructorCourses/:instructorId',verifyToken, verifyInstructor, getInstructorCourses);
 
-//add new course. Instructor verify need
-courseRouter.post('/add', addNewCourse);
+//add new course.
+courseRouter.post('/add',verifyToken, verifyInstructor, addNewCourse);
 
-//update course data by courseId. Instructor verify need
-courseRouter.patch('/update', updateCourseById);
+//update course data by courseId.
+courseRouter.patch('/update',verifyToken, verifyInstructor, updateCourseById);
 
-//upfate course publish status by courseId. Instructor verify need
-courseRouter.patch('/updatePublishStatus', updateCoursePublishStatus);
+//update course publish status by courseId.
+courseRouter.patch('/updatePublishStatus',verifyToken, verifyInstructor, updateCoursePublishStatus);
 
-//update course feedback by courseId. Admin verify need
-courseRouter.patch('/updatefeedback/:id', updateCourseFeedback);
+//update course feedback by courseId.
+courseRouter.patch('/updatefeedback/:id',verifyToken, verifyAdmin, updateCourseFeedback);
 
-//update course approved status by courseId. Admin verify need
-courseRouter.patch('/status/:id', updateCourseApprovedStatus);
+//update course approved status by courseId.
+courseRouter.patch('/status/:id',verifyToken, verifyAdmin, updateCourseApprovedStatus);
 
-//delete course by courseId. Instructor verify need
-courseRouter.delete('/delete', deleteCourse);
+//delete course by courseId.
+courseRouter.delete('/delete',verifyToken, verifyInstructor, deleteCourse);
 
 export default courseRouter;
