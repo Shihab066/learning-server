@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { coursesCollection, usersCollection } from "../index.js";
+import { authorizeInstructor } from "./authorizationController.js";
 
 export const getTopCourses = async (req, res) => {
     try {
@@ -51,41 +52,35 @@ export const getAllCourses = async (req, res) => {
 export const getInstructorCourse = async (req, res) => {
     try {
         const courseId = req.query.courseId;
-        const instructorId = req.params.instructorId;
+        const instructorId = req.query.id;
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
 
-        const instructorEmail = await usersCollection.findOne(
-            { _id: instructorId },
-            { projection: { _id: 0, email: 1 } }
-        );
+        if (authorizeStatus === 200) {
+            const query = { _id: new ObjectId(courseId) };
+            const options = {
+                projection: {
+                    _instructorId: 1,
+                    courseName: 1,
+                    courseThumbnail: 1,
+                    shortDescription: 1,
+                    description: 1,
+                    level: 1,
+                    category: 1,
+                    price: 1,
+                    discount: 1,
+                    seats: 1,
+                    courseContents: 1
+                }
+            };
 
-        if (req.decoded.email !== instructorEmail?.email) {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
-        }
-
-        const query = { _id: new ObjectId(courseId) };
-        const options = {
-            projection: {
-                _instructorId: 1,
-                courseName: 1,
-                courseThumbnail: 1,
-                shortDescription: 1,
-                description: 1,
-                level: 1,
-                category: 1,
-                price: 1,
-                discount: 1,
-                seats: 1,
-                courseContents: 1
+            if (course?._instructorId !== instructorId) {
+                return res.status(403).json({ error: true, message: 'Forbidden Access' });
             }
-        };
 
-        const course = await coursesCollection.findOne(query, options);
-
-        if (course?._instructorId !== instructorId) {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+            const course = await coursesCollection.findOne(query, options);
+            res.status(200).json(course);
         }
-
-        res.status(200).json(course);
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error fetching course details:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -96,35 +91,29 @@ export const getInstructorCourses = async (req, res) => {
     try {
         const instructorId = req.params.instructorId;
         const searchValue = req.query.search || '';
+        const authorizeStatus = await authorizeInstructor(id, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const query = { _instructorId: instructorId, courseName: { $regex: searchValue, $options: 'i' } };
+            const options = {
+                projection: {
+                    _instructorId: 1,
+                    courseName: 1,
+                    courseThumbnail: 1,
+                    price: 1,
+                    discount: 1,
+                    level: 1,
+                    status: 1,
+                    feedback: 1,
+                    publish: 1,
+                    rating: 1,
+                    totalReviews: 1
+                }
+            };
 
-        const instructorEmail = await usersCollection.findOne(
-            { _id: instructorId },
-            { projection: { _id: 0, email: 1 } }
-        );
-
-        if (req.decoded.email !== instructorEmail?.email) {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+            const courses = await coursesCollection.find(query, options).toArray();
+            res.status(200).json(courses);
         }
-
-        const query = { _instructorId: instructorId, courseName: { $regex: searchValue, $options: 'i' } };
-        const options = {
-            projection: {
-                _instructorId: 1,
-                courseName: 1,
-                courseThumbnail: 1,
-                price: 1,
-                discount: 1,
-                level: 1,
-                status: 1,
-                feedback: 1,
-                publish: 1,
-                rating: 1,
-                totalReviews: 1
-            }
-        };
-
-        const courses = await coursesCollection.find(query, options).toArray();
-        res.status(200).json(courses);
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error fetching instructor's courses:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -154,28 +143,24 @@ export const addNewCourse = async (req, res) => {
 export const updateCourseById = async (req, res) => {
     try {
         const courseId = req.query.courseId;
-        const id = req.query.id;
+        const instructorId = req.query.id;
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
 
-        const instructorEmail = await usersCollection.findOne(
-            { _id: id },
-            { projection: { _id: 0, email: 1 } }
-        );
+        if (authorizeStatus === 200) {
+            const updatedCourseData = req.body;
+            const filter = { _id: new ObjectId(courseId) };
+            const updateDoc = { $set: updatedCourseData };
 
-        if (req.decoded.email !== instructorEmail?.email) {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+            const result = await coursesCollection.updateOne(filter, updateDoc);
+
+            if (result.modifiedCount === 0) {
+                return res.status(404).json({ message: "Course not found or no changes made." });
+            }
+
+            res.status(200).json({ message: "Course updated successfully.", result });
         }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
 
-        const updatedCourseData = req.body;
-        const filter = { _id: new ObjectId(courseId) };
-        const updateDoc = { $set: updatedCourseData };
-
-        const result = await coursesCollection.updateOne(filter, updateDoc);
-
-        if (result.modifiedCount === 0) {
-            return res.status(404).json({ message: "Course not found or no changes made." });
-        }
-
-        res.status(200).json({ message: "Course updated successfully.", result });
     } catch (error) {
         console.error("Error updating course:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -186,27 +171,22 @@ export const updateCoursePublishStatus = async (req, res) => {
     try {
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const { publish } = req.body;
+            const filter = { _id: new ObjectId(courseId) };
+            const updateDoc = { $set: { publish } };
 
-        const instructorEmail = await usersCollection.findOne(
-            { _id: instructorId },
-            { projection: { _id: 0, email: 1 } }
-        );
+            const result = await coursesCollection.updateOne(filter, updateDoc);
 
-        if (req.decoded.email !== instructorEmail?.email) {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+            if (result.modifiedCount === 0) {
+                return res.status(404).json({ message: "Course not found or no changes made." });
+            }
+
+            res.status(200).json({ message: "Publish status updated successfully.", result });
         }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
 
-        const { publish } = req.body;
-        const filter = { _id: new ObjectId(courseId) };
-        const updateDoc = { $set: { publish } };
-
-        const result = await coursesCollection.updateOne(filter, updateDoc);
-
-        if (result.modifiedCount === 0) {
-            return res.status(404).json({ message: "Course not found or no changes made." });
-        }
-
-        res.status(200).json({ message: "Publish status updated successfully.", result });
     } catch (error) {
         console.error("Error updating publish status:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -267,24 +247,25 @@ export const deleteCourse = async (req, res) => {
     try {
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
 
-        const instructorEmail = await usersCollection.findOne(
-            { _id: instructorId },
-            { projection: { _id: 0, email: 1 } }
-        );
+        if (authorizeStatus === 200) {
+            const query = { _id: new ObjectId(courseId) };
+            const course = await coursesCollection.findOne(query, { projection: { _instructorId: 1 } });
 
-        if (req.decoded.email !== instructorEmail?.email) {
-            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+            if (course?._instructorId !== instructorId) {
+                return res.status(403).json({ error: true, message: 'Forbidden Access' });
+            }
+
+            const result = await coursesCollection.deleteOne(query);
+            if (result.deletedCount === 0) {
+                return res.status(404).json({ message: "Course not found. No course deleted" });
+            }
+
+            res.status(200).json({ message: "Course deleted successfully.", result });
         }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
 
-        const query = { _id: new ObjectId(courseId) };
-        const result = await coursesCollection.deleteOne(query);
-
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ message: "Course not found. No course deleted" });
-        }
-
-        res.status(200).json({ message: "Course deleted successfully.", result });
     } catch (error) {
         console.error("Error deleting course:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });

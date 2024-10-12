@@ -14,8 +14,8 @@ courseRouter.get('/all', getAllApprovedCourses);
 //get all course data.
 courseRouter.get('/all/admin',verifyToken, verifyAdmin, getAllCourses);
 
-//get single course by instructor id.
-courseRouter.get('/instructorCourse/:instructorId',verifyToken, verifyInstructor, getInstructorCourse);
+//get single course by query, query contain courseId and instructorId.
+courseRouter.get('/instructorCourse',verifyToken, verifyInstructor, getInstructorCourse);
 
 //get all courses by instructor id.
 courseRouter.get('/instructorCourses/:instructorId',verifyToken, verifyInstructor, getInstructorCourses);
@@ -23,10 +23,10 @@ courseRouter.get('/instructorCourses/:instructorId',verifyToken, verifyInstructo
 //add new course.
 courseRouter.post('/add',verifyToken, verifyInstructor, addNewCourse);
 
-//update course data by courseId.
+//update course data by query, query contain courseId and instructorId.
 courseRouter.patch('/update',verifyToken, verifyInstructor, updateCourseById);
 
-//update course publish status by courseId.
+//update course publish status by query, query contain courseId and instructorId.
 courseRouter.patch('/updatePublishStatus',verifyToken, verifyInstructor, updateCoursePublishStatus);
 
 //update course feedback by courseId.
@@ -35,7 +35,7 @@ courseRouter.patch('/updatefeedback/:id',verifyToken, verifyAdmin, updateCourseF
 //update course approved status by courseId.
 courseRouter.patch('/status/:id',verifyToken, verifyAdmin, updateCourseApprovedStatus);
 
-//delete course by courseId.
+//delete course by query, query contain courseId and instructorId.
 courseRouter.delete('/delete',verifyToken, verifyInstructor, deleteCourse);
 
 export default courseRouter;
