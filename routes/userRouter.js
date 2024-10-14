@@ -16,15 +16,15 @@ userRouter.get('/all/:adminId', verifyToken, verifyAdmin, getUsers);
 userRouter.get('/getSignupMethod/:id', getSignupMethodById);
 
 //get user role by userId.
-userRouter.get('/role/:id',verifyToken, getUserRoleById);
+userRouter.get('/role/:id', getUserRoleById);
 
 // update user info.
 userRouter.patch('/update/:id', verifyToken, updateUserById);
 
 // update instructor profile info.
-userRouter.patch('/updateInstructorProfile/:id',verifyToken, verifyInstructor, updateInstructorProfileById);
+userRouter.patch('/updateInstructorProfile/:id', verifyToken, verifyInstructor, updateInstructorProfileById);
 
 //update user type/role.
-userRouter.patch('/users/:id',verifyToken, verifyAdmin, updateUserRoleById);
+userRouter.patch('/users/:id', verifyToken, verifyAdmin, updateUserRoleById);
 
 export default userRouter;

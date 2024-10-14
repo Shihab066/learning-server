@@ -39,6 +39,41 @@ export const getAllApprovedCourses = async (req, res) => {
     }
 };
 
+export const getCourseDetails = async (req, res) => {
+    const courseId = req.params.courseId;
+    const options = {
+        projection: {
+            courseName: 1,
+            courseThumbnail: 1,
+            summary: 1,
+            description: 1,
+            level: 1,
+            category: 1,
+            price: 1,
+            discount: 1,
+            students: 1,
+            rating: 1,
+            totalReviews: 1,
+            courseContents: 1,
+        }
+    }
+    const courseDetails = await coursesCollection.findOne({ _id: new ObjectId(courseId) }, options);
+    const formatCourseContents = (contents) => {
+        return contents?.map(({ milestoneName, milestoneDetails, milestoneModules }) => ({
+            milestoneName,
+            milestoneDetails,
+            totalModules: milestoneModules?.length
+        }));
+    }
+
+    const formattedCourseDetails = {
+        ...courseDetails,
+        courseContents: formatCourseContents(courseDetails?.courseContents)
+    };
+    
+    res.send(formattedCourseDetails);
+}
+
 export const getAllCourses = async (req, res) => {
     try {
         const courses = await coursesCollection.find().toArray();
@@ -62,7 +97,7 @@ export const getInstructorCourse = async (req, res) => {
                     _instructorId: 1,
                     courseName: 1,
                     courseThumbnail: 1,
-                    shortDescription: 1,
+                    summary: 1,
                     description: 1,
                     level: 1,
                     category: 1,
@@ -72,12 +107,15 @@ export const getInstructorCourse = async (req, res) => {
                     courseContents: 1
                 }
             };
+            
+            const course = await coursesCollection.findOne(query, options);
 
             if (course?._instructorId !== instructorId) {
                 return res.status(403).json({ error: true, message: 'Forbidden Access' });
             }
-
-            const course = await coursesCollection.findOne(query, options);
+            if (!course) {
+                return res.status(404).json({ error: true, mesage: 'No Course Found'})
+            }
             res.status(200).json(course);
         }
         else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
@@ -91,7 +129,7 @@ export const getInstructorCourses = async (req, res) => {
     try {
         const instructorId = req.params.instructorId;
         const searchValue = req.query.search || '';
-        const authorizeStatus = await authorizeInstructor(id, req.decoded.email);
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
         if (authorizeStatus === 200) {
             const query = { _instructorId: instructorId, courseName: { $regex: searchValue, $options: 'i' } };
             const options = {

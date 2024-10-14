@@ -57,17 +57,13 @@ export const getSignupMethodById = async (req, res) => {
 export const getUserRoleById = async (req, res) => {
     try {
         const { id } = req.params;
-        const authorizeStatus = await authorizeUser(id, req.decoded.email);
-        if (authorizeStatus === 200) {
-            const role = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, role: 1 } });
+        const role = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, role: 1 } });
 
-            if (!role) {
-                return res.status(404).json({ message: "User role not found" });
-            }
-
-            res.status(200).json(role);
+        if (!role) {
+            return res.status(404).json({ message: "User role not found" });
         }
-        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+        res.status(200).json(role);
     } catch (error) {
         console.error("Error fetching user role:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
