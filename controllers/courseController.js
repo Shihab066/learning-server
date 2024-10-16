@@ -40,77 +40,104 @@ export const getAllApprovedCourses = async (req, res) => {
 };
 
 export const getCourseDetails = async (req, res) => {
-    const courseId = req.params.courseId;
-    const courseDetailsOptions = {
-        projection: {
-            _id: 0,
-            _instructorId: 1,
-            courseName: 1,
-            courseThumbnail: 1,
-            summary: 1,
-            description: 1,
-            level: 1,
-            category: 1,
-            price: 1,
-            discount: 1,
-            students: 1,
-            rating: 1,
-            totalReviews: 1,
-            courseContents: 1,
+    try {
+        const courseId = req.params.courseId;
+
+        // Fetch course details with specified projection
+        const courseDetailsOptions = {
+            projection: {
+                _id: 0,
+                _instructorId: 1,
+                courseName: 1,
+                courseThumbnail: 1,
+                summary: 1,
+                description: 1,
+                level: 1,
+                category: 1,
+                price: 1,
+                discount: 1,
+                students: 1,
+                rating: 1,
+                totalReviews: 1,
+                courseContents: 1,
+            }
+        };
+
+        // Fetch instructor data with specified projection
+        const instructorDataOptions = {
+            projection: {
+                _id: 0,
+                name: 1,
+                image: 1,
+                headline: 1,
+                experience: 1
+            }
+        };
+
+        // Find the course by ID
+        const courseData = await coursesCollection.findOne({ _id: new ObjectId(courseId) }, courseDetailsOptions);
+        if (!courseData) {
+            return res.status(404).json({ error: true, message: 'Course not found' });
         }
-    }
-    const instructorDataOptions = {
-        projection: {
-            _id: 0,
-            name: 1,
-            image: 1,
-            headline: 1,
-            experience: 1
+
+        const instructorId = courseData._instructorId;
+
+        // Find the instructor by ID
+        const instructorData = await usersCollection.findOne({ _id: instructorId }, instructorDataOptions);
+        if (!instructorData) {
+            return res.status(404).json({ error: true, message: 'Instructor not found' });
         }
+
+        // Fetch total course count for the instructor
+        const totalCoursesCount = await coursesCollection.countDocuments({ _instructorId: instructorId });
+
+        // Fetch total review count for the instructor
+        const totalReviewsCount = await reviewsCollection.countDocuments({ _instructorId: instructorId });
+
+        // Helper function to format course contents
+        const formatCourseContents = (contents) => {
+            return contents?.map(({ milestoneName, milestoneDetails, milestoneModules }) => ({
+                milestoneName,
+                milestoneDetails,
+                totalModules: milestoneModules?.length || 0
+            }));
+        };
+
+        // Prepare formatted course data
+        const formattedCourseData = {
+            ...courseData,
+            courseContents: formatCourseContents(courseData?.courseContents)
+        };
+
+        // Aggregate to find total students for the instructor
+        const pipeline = [
+            { $match: { _instructorId: instructorId } },
+            { $group: { _id: null, totalStudents: { $sum: '$students' } } },
+            { $project: { _id: 0, totalStudents: 1 } }
+        ];
+        const totalStudentsArray = await coursesCollection.aggregate(pipeline).toArray();
+        const totalStudents = totalStudentsArray.length > 0 ? totalStudentsArray[0].totalStudents : 0;
+
+        // Prepare instructor info
+        const instructorInfo = {
+            ...instructorData,
+            totalCoursesCount,
+            totalReviewsCount,
+            totalStudents
+        };
+
+        // Final course details object
+        const courseDetails = {
+            ...formattedCourseData,
+            ...instructorInfo
+        };
+
+        res.status(200).json(courseDetails);
+    } catch (error) {
+        console.error("Error fetching course details:", error);
+        res.status(500).json({ error: true, message: 'Internal Server Error' });
     }
-    const courseData = await coursesCollection.findOne({ _id: new ObjectId(courseId) }, courseDetailsOptions);
-    const instructorId = courseData?._instructorId
-    const instructorData = await usersCollection.findOne({ _id: instructorId }, instructorDataOptions);
-    const totalCoursesCount = await coursesCollection.countDocuments({ _instructorId: instructorId });
-    const totalReviewsCount = await reviewsCollection.countDocuments({ _instructorId: instructorId });
-    
-    const formatCourseContents = (contents) => {
-        return contents?.map(({ milestoneName, milestoneDetails, milestoneModules }) => ({
-            milestoneName,
-            milestoneDetails,
-            totalModules: milestoneModules?.length
-        }));
-    }
-
-    const formattedCourseData = {
-        ...courseData,
-        courseContents: formatCourseContents(courseData?.courseContents)
-    };    
-
-    // find total student with aggregate pipeline
-    const pipeline = [
-        { $match: { _instructorId: instructorId } },
-        { $group: { _id: null, totalStudents: { $sum: '$students' } } },
-        { $project: { _id: 0, totalStudents: 1 } }
-    ];
-
-    const totalStudentsArray = await coursesCollection.aggregate(pipeline).toArray();
-    const totalStudents = totalStudentsArray.length > 0 ? totalStudentsArray[0].totalStudents : 0;
-
-    const instructorInfo = {       
-        ...instructorData,
-        totalCoursesCount,
-        totalReviewsCount,
-        totalStudents
-
-    }
-
-    const courseDetails = {
-        ...formattedCourseData,
-        ...instructorInfo
-    }
-    res.send(courseDetails);
-}
+};
 
 export const getAllCourses = async (req, res) => {
     try {
