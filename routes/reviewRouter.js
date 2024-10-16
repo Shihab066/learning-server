@@ -1,7 +1,9 @@
 import express from 'express';
-import { addReview, getCourseReviews, getInstructorReviews } from '../controllers/reviewController.js';
+import { addReview, getCourseRatings, getCourseReviews, getInstructorReviews } from '../controllers/reviewController.js';
 
 const reviewRouter = express.Router();
+// get course ratings by courseID
+reviewRouter.get('/ratings/:courseId', getCourseRatings);
 
 // get course reviews by courseID
 reviewRouter.get('/get/:courseId', getCourseReviews);
@@ -13,4 +15,4 @@ reviewRouter.get('/instructor/:instructorId', getInstructorReviews);
 reviewRouter.post('/add', addReview);
 
 
-export default reviewRouter;
+export default reviewRouter; 

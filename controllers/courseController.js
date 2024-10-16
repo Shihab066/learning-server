@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { coursesCollection, usersCollection } from "../index.js";
+import { coursesCollection, reviewsCollection, usersCollection } from "../index.js";
 import { authorizeInstructor } from "./authorizationController.js";
 
 export const getTopCourses = async (req, res) => {
@@ -41,8 +41,10 @@ export const getAllApprovedCourses = async (req, res) => {
 
 export const getCourseDetails = async (req, res) => {
     const courseId = req.params.courseId;
-    const options = {
+    const courseDetailsOptions = {
         projection: {
+            _id: 0,
+            _instructorId: 1,
             courseName: 1,
             courseThumbnail: 1,
             summary: 1,
@@ -57,7 +59,21 @@ export const getCourseDetails = async (req, res) => {
             courseContents: 1,
         }
     }
-    const courseDetails = await coursesCollection.findOne({ _id: new ObjectId(courseId) }, options);
+    const instructorDataOptions = {
+        projection: {
+            _id: 0,
+            name: 1,
+            image: 1,
+            headline: 1,
+            experience: 1
+        }
+    }
+    const courseData = await coursesCollection.findOne({ _id: new ObjectId(courseId) }, courseDetailsOptions);
+    const instructorId = courseData?._instructorId
+    const instructorData = await usersCollection.findOne({ _id: instructorId }, instructorDataOptions);
+    const totalCoursesCount = await coursesCollection.countDocuments({ _instructorId: instructorId });
+    const totalReviewsCount = await reviewsCollection.countDocuments({ _instructorId: instructorId });
+    
     const formatCourseContents = (contents) => {
         return contents?.map(({ milestoneName, milestoneDetails, milestoneModules }) => ({
             milestoneName,
@@ -66,12 +82,34 @@ export const getCourseDetails = async (req, res) => {
         }));
     }
 
-    const formattedCourseDetails = {
-        ...courseDetails,
-        courseContents: formatCourseContents(courseDetails?.courseContents)
-    };
-    
-    res.send(formattedCourseDetails);
+    const formattedCourseData = {
+        ...courseData,
+        courseContents: formatCourseContents(courseData?.courseContents)
+    };    
+
+    // find total student with aggregate pipeline
+    const pipeline = [
+        { $match: { _instructorId: instructorId } },
+        { $group: { _id: null, totalStudents: { $sum: '$students' } } },
+        { $project: { _id: 0, totalStudents: 1 } }
+    ];
+
+    const totalStudentsArray = await coursesCollection.aggregate(pipeline).toArray();
+    const totalStudents = totalStudentsArray.length > 0 ? totalStudentsArray[0].totalStudents : 0;
+
+    const instructorInfo = {       
+        ...instructorData,
+        totalCoursesCount,
+        totalReviewsCount,
+        totalStudents
+
+    }
+
+    const courseDetails = {
+        ...formattedCourseData,
+        ...instructorInfo
+    }
+    res.send(courseDetails);
 }
 
 export const getAllCourses = async (req, res) => {
@@ -107,14 +145,14 @@ export const getInstructorCourse = async (req, res) => {
                     courseContents: 1
                 }
             };
-            
+
             const course = await coursesCollection.findOne(query, options);
 
             if (course?._instructorId !== instructorId) {
                 return res.status(403).json({ error: true, message: 'Forbidden Access' });
             }
             if (!course) {
-                return res.status(404).json({ error: true, mesage: 'No Course Found'})
+                return res.status(404).json({ error: true, mesage: 'No Course Found' })
             }
             res.status(200).json(course);
         }

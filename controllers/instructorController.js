@@ -1,4 +1,4 @@
-import { usersCollection } from "../index.js";
+import { coursesCollection, usersCollection } from "../index.js";
 
 export const getInstructors = async (req, res) => {
     try {
@@ -35,7 +35,7 @@ export const getPopularInstructors = async (req, res) => {
                 { $project: { _id: 0, email: '$_id', totalStudents: 1 } }
             ];
 
-            const findTotalStudent = classesCollection.aggregate(pipeline);
+            const findTotalStudent = coursesCollection.aggregate(pipeline);
             const res = await findTotalStudent.toArray();
 
             if (res.length) {
