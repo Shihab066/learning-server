@@ -1,4 +1,53 @@
-import { coursesCollection, usersCollection } from "../index.js";
+import { coursesCollection, reviewsCollection, usersCollection } from "../index.js";
+
+export const getInstructor = async (req, res) => {
+    try {
+        const instructorId = req.params.instructorId;
+
+        // Fetch instructor info
+        const instructorOptions = {
+            projection: {
+                _id: 0,
+                name: 1,
+                image: 1,
+                headline: 1,
+                bioData: 1,
+                experience: 1,
+                expertise: 1,
+                socialLinks: 1
+            }
+        };
+        const instructorInfo = await usersCollection.findOne({ _id: instructorId, role: 'instructor' }, instructorOptions);
+        if (!instructorInfo) {
+            return res.status(404).json({ error: true, message: 'Instructor not found' });
+        }
+
+        // Fetch course, review counts, and total students
+        const [totalCoursesCount, totalReviewsCount, totalStudentsArray] = await Promise.all([
+            coursesCollection.countDocuments({ _instructorId: instructorId }),
+            reviewsCollection.countDocuments({ _instructorId: instructorId }),
+            coursesCollection.aggregate([
+                { $match: { _instructorId: instructorId } },
+                { $group: { _id: null, totalStudents: { $sum: '$students' } } },
+                { $project: { _id: 0, totalStudents: 1 } }
+            ]).toArray()
+        ]);
+
+        const totalStudents = totalStudentsArray.length > 0 ? totalStudentsArray[0].totalStudents : 0;
+
+        const instructorDetails = {
+            ...instructorInfo,
+            totalCoursesCount,
+            totalReviewsCount,
+            totalStudents
+        };
+
+        res.status(200).json(instructorDetails);
+    } catch (error) {
+        console.error("Error fetching instructor details:", error);
+        res.status(500).json({ error: true, message: 'Internal Server Error' });
+    }
+};
 
 export const getInstructors = async (req, res) => {
     try {
