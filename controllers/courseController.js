@@ -22,16 +22,28 @@ export const getAllApprovedCourses = async (req, res) => {
         const sortValue = parseInt(req.query.sort);
         const searchValue = req.query.search !== "undefined" ? req.query.search : '';
         const skipDocument = (page - 1) * pageSize;
-        const query = { status: 'approved', name: { $regex: searchValue, $options: 'i' } };
-
-        const cursor = coursesCollection.find(query)
+        const query = {courseName: { $regex: searchValue, $options: 'i' } };
+        const options = {
+            projection: {
+                instructorName: 1,
+                courseName: 1,
+                courseThumbnail: 1,
+                level: 1,
+                rating: 1,
+                totalReviews: 1,
+                totalModules: 1,
+                price: 1,
+                discount: 1
+            }
+        }
+        const cursor = coursesCollection.find(query,options)
             .skip(skipDocument)
             .limit(pageSize)
             .sort(sortValue ? { price: sortValue } : {});
 
-        const coursesCount = await coursesCollection.countDocuments(query);
+        const coursesCount = await coursesCollection.countDocuments(query);       
         const courses = await cursor.toArray();
-
+        
         res.status(200).json({ courses, coursesCount });
     } catch (error) {
         console.error("Error fetching courses:", error);
@@ -60,6 +72,7 @@ export const getCourseDetails = async (req, res) => {
                 rating: 1,
                 totalReviews: 1,
                 courseContents: 1,
+                totalModules: 1
             }
         };
 
@@ -148,6 +161,33 @@ export const getAllCourses = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+export const getMoreCourseByInstructor = async (req, res) => {
+    try {
+        const { instructorId } = req.params;
+        const options = {
+            projection: {
+                courseName: 1,
+                courseThumbnail: 1,
+                level: 1,
+                rating: 1,
+                totalReviews: 1,
+                totalModules: 1,
+                price: 1,
+                discount: 1
+            }
+        }
+        const courses = await coursesCollection.find({ _instructorId: instructorId }, options).toArray();
+        if (!courses) {
+            return res.status(404).json({ error: true, message: 'No course found' });
+        }
+        res.status(200).json(courses);
+
+    } catch (error) {
+        console.log('Error fetching more course of instructor', error);
+        res.status(500).json({ message: 'Internal server error', error: error.mesage });
+    }
+}
 
 export const getInstructorCourse = async (req, res) => {
     try {

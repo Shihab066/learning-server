@@ -1,5 +1,5 @@
 import express from 'express';
-import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseDetails, getInstructorCourse, getInstructorCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCoursePublishStatus } from '../controllers/courseController.js';
+import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseDetails, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCoursePublishStatus } from '../controllers/courseController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyAdmin, verifyInstructor } from '../controllers/authorizationController.js';
 
@@ -15,30 +15,33 @@ courseRouter.get('/all', getAllApprovedCourses);
 courseRouter.get('/details/:courseId', getCourseDetails);
 
 //get all course data.
-courseRouter.get('/all/admin',verifyToken, verifyAdmin, getAllCourses);
+courseRouter.get('/all/admin', verifyToken, verifyAdmin, getAllCourses);
+
+//get more course of instructor by instructorId.
+courseRouter.get('/moreCourse/:instructorId', getMoreCourseByInstructor);
 
 //get single course by query, query contain courseId and instructorId.
-courseRouter.get('/instructorCourse',verifyToken, verifyInstructor, getInstructorCourse);
+courseRouter.get('/instructorCourse', verifyToken, verifyInstructor, getInstructorCourse);
 
-//get all courses by instructor id.
-courseRouter.get('/instructorCourses/:instructorId',verifyToken, verifyInstructor, getInstructorCourses);
+//get all instructor courses by instructorId.
+courseRouter.get('/instructorCourses/:instructorId', verifyToken, verifyInstructor, getInstructorCourses);
 
 //add new course.
-courseRouter.post('/add',verifyToken, verifyInstructor, addNewCourse);
+courseRouter.post('/add', verifyToken, verifyInstructor, addNewCourse);
 
 //update course data by query, query contain courseId and instructorId.
-courseRouter.patch('/update',verifyToken, verifyInstructor, updateCourseById);
+courseRouter.patch('/update', verifyToken, verifyInstructor, updateCourseById);
 
 //update course publish status by query, query contain courseId and instructorId.
-courseRouter.patch('/updatePublishStatus',verifyToken, verifyInstructor, updateCoursePublishStatus);
+courseRouter.patch('/updatePublishStatus', verifyToken, verifyInstructor, updateCoursePublishStatus);
 
 //update course feedback by courseId.
-courseRouter.patch('/updatefeedback/:id',verifyToken, verifyAdmin, updateCourseFeedback);
+courseRouter.patch('/updatefeedback/:id', verifyToken, verifyAdmin, updateCourseFeedback);
 
 //update course approved status by courseId.
-courseRouter.patch('/status/:id',verifyToken, verifyAdmin, updateCourseApprovedStatus);
+courseRouter.patch('/status/:id', verifyToken, verifyAdmin, updateCourseApprovedStatus);
 
 //delete course by query, query contain courseId and instructorId.
-courseRouter.delete('/delete',verifyToken, verifyInstructor, deleteCourse);
+courseRouter.delete('/delete', verifyToken, verifyInstructor, deleteCourse);
 
 export default courseRouter;
