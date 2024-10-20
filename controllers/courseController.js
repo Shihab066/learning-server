@@ -4,10 +4,33 @@ import { authorizeInstructor } from "./authorizationController.js";
 
 export const getTopCourses = async (req, res) => {
     try {
-        const query = {};
-        const options = { sort: { students: -1 } };
+        const topCoursesPipeLine = [
+            {
+                $addFields: {
+                    combinedScore: {
+                        $add: [
+                            { $multiply: ['$students', .6] }, // Weight students (60%)
+                            { $multiply: [{$add: ['$rating','$totalReviews']}, .3] }, // Weight rating + totalReviews (40%)
+                            { $multiply: [{$divide: ['$courseCompleted','$students']}, .1] }, // Weight CourseCompletion rate (10%)
+                        ]
+                    }
+                }
+            },            
+            {
+                $project: {
+                    courseName: 1,
+                    courseThumbnail: 1,
+                    instructorName: 1,
+                    rating: 1,
+                    totalReviews: 1,
+                }
+            },
+            {
+                $limit: 8
+            }
+        ]
 
-        const courses = await coursesCollection.find(query, options).limit(6).toArray();
+        const courses = await coursesCollection.aggregate(topCoursesPipeLine).toArray();
         res.status(200).json(courses);
     } catch (error) {
         console.error("Error fetching top classes:", error);
@@ -22,7 +45,7 @@ export const getAllApprovedCourses = async (req, res) => {
         const sortValue = parseInt(req.query.sort);
         const searchValue = req.query.search !== "undefined" ? req.query.search : '';
         const skipDocument = (page - 1) * pageSize;
-        const query = {courseName: { $regex: searchValue, $options: 'i' } };
+        const query = { courseName: { $regex: searchValue, $options: 'i' } };
         const options = {
             projection: {
                 instructorName: 1,
@@ -36,14 +59,14 @@ export const getAllApprovedCourses = async (req, res) => {
                 discount: 1
             }
         }
-        const cursor = coursesCollection.find(query,options)
+        const cursor = coursesCollection.find(query, options)
             .skip(skipDocument)
             .limit(pageSize)
             .sort(sortValue ? { price: sortValue } : {});
 
-        const coursesCount = await coursesCollection.countDocuments(query);       
+        const coursesCount = await coursesCollection.countDocuments(query);
         const courses = await cursor.toArray();
-        
+
         res.status(200).json({ courses, coursesCount });
     } catch (error) {
         console.error("Error fetching courses:", error);
@@ -269,6 +292,7 @@ export const addNewCourse = async (req, res) => {
         const modifiedCourse = {
             ...newCourse,
             students: 0,
+            courseCompleted: 0,
             status: 'pending',
             feedback: '',
             rating: 0,
