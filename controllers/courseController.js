@@ -10,12 +10,15 @@ export const getTopCourses = async (req, res) => {
                     combinedScore: {
                         $add: [
                             { $multiply: ['$students', .6] }, // Weight students (60%)
-                            { $multiply: [{$add: ['$rating','$totalReviews']}, .3] }, // Weight rating + totalReviews (40%)
-                            { $multiply: [{$divide: ['$courseCompleted','$students']}, .1] }, // Weight CourseCompletion rate (10%)
+                            { $multiply: [{ $add: ['$rating', '$totalReviews'] }, .3] }, // Weight rating + totalReviews (30%)
+                            { $multiply: [{ $divide: ['$courseCompleted', '$students'] }, .1] }, // Weight CourseCompletion rate (10%)
                         ]
                     }
                 }
-            },            
+            },
+            {
+                $sort: { combinedScore: -1 }
+            },
             {
                 $project: {
                     courseName: 1,

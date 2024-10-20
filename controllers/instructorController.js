@@ -72,43 +72,75 @@ export const getPopularInstructors = async (req, res) => {
         // Step 1: Find all instructor emails
         const query = { role: 'instructor' };
         const options = {
-            projection: { _id: 0, email: 1 }
+            projection: { _id: 1 }
         };
-        const instructorsEmailCollection = await usersCollection.find(query, options).toArray();
+        const instructorsCollection = await usersCollection.find(query, options).toArray();
 
-        // Step 2: Find total students for each instructor
-        const promises = instructorsEmailCollection.map(async ({ email }) => {
-            const pipeline = [
-                { $match: { email: email } },
-                { $group: { _id: '$email', totalStudents: { $sum: '$students' } } },
-                { $project: { _id: 0, email: '$_id', totalStudents: 1 } }
-            ];
+        // Step 2: Calculate combined score for each instructor
+        const promises = instructorsCollection.map(async ({ _id: instructorId }) => {
+            const totalRatings = await reviewsCollection.countDocuments({ _instructorId: instructorId })
 
-            const findTotalStudent = coursesCollection.aggregate(pipeline);
-            const res = await findTotalStudent.toArray();
+            const instructorRating = await reviewsCollection.aggregate([
+                {
+                    $match: { _instructorId: instructorId }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalSumRating: { $sum: '$rating' }
+                    }
+                },
+                {
+                    $addFields: { totalRatings: totalRatings }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        ratingAverage: { $divide: ['$totalSumRating', '$totalRatings'] }
+                    }
+                }
+            ]).toArray();
 
-            if (res.length) {
-                return res[0];
+            const findTotalStudent = await coursesCollection.aggregate([
+                {
+                    $match: { _instructorId: instructorId }
+                },
+                {
+                    $group: { _id: null, totalStudents: { $sum: '$students' } }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        totalStudents: 1
+                    }
+                }
+            ]).toArray();
+
+            const combinedScore = ((totalRatings + instructorRating[0]?.ratingAverage) * .4) + ((findTotalStudent[0]?.totalStudents) * .6); // 40% of (totalRating + instructorRating) and 60% of total Students
+            const instructor = {
+                instructorId,
+                combinedScore: combinedScore ? combinedScore : 0
             }
+            return instructor;
         });
 
         const results = await Promise.all(promises);
 
-        // Filter out any undefined results and sort based on total students
-        const sortedResults = results
+        // Filter out any undefined results and sort based on instructor combined score
+        const sortedInstructors = results
             .filter(result => result !== undefined)
-            .sort((a, b) => b.totalStudents - a.totalStudents)
-            .slice(0, 6);
+            .sort((a, b) => b.combinedScore - a.combinedScore)
+            .slice(0, 8);
 
         // Step 3: Fetch instructor details
-        const getInstructorPromise = sortedResults.map(async (instructor) => {
+        const getInstructorPromise = sortedInstructors.map(async ({instructorId}) => {
             const options = {
-                projection: {
-                    userName: 1,
+                projection: {                    
+                    name: 1,
                     headline: 1
                 }
             }
-            return await usersCollection.findOne({ email: instructor.email }, options);
+            return await usersCollection.findOne({ _id: instructorId }, options);
         });
 
         const popularInstructors = await Promise.all(getInstructorPromise);
