@@ -51,16 +51,66 @@ export const getInstructor = async (req, res) => {
 
 export const getInstructors = async (req, res) => {
     try {
+        // Step 1: Find all instructor emails
         const query = { role: 'instructor' };
         const options = {
             projection: {
-                userName: 1,
+                name: 1,
+                image: 1,
                 headline: 1
             }
         };
+        const instructorsCollection = await usersCollection.find(query, options).toArray();
 
-        const result = await usersCollection.find(query, options).toArray();
-        res.status(200).json(result);
+        // Step 2: Calculate average rating for each instructor
+        const promises = instructorsCollection.map(async (instructor) => {
+            const { _id: instructorId } = instructor;
+            const totalRatings = await reviewsCollection.countDocuments({ _instructorId: instructorId })
+
+            const instructorRating = await reviewsCollection.aggregate([
+                {
+                    $match: { _instructorId: instructorId }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalSumRating: { $sum: '$rating' }
+                    }
+                },
+                {
+                    $addFields: { totalRatings: totalRatings }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        ratingAverage: { $divide: ['$totalSumRating', '$totalRatings'] }
+                    }
+                }
+            ]).toArray();
+            //     {
+            //         $match: { _instructorId: instructorId }
+            //     },
+            //     {
+            //         $group: { _id: null, totalStudents: { $sum: '$students' } }
+            //     },
+            //     {
+            //         $project: {
+            //             _id: 0,
+            //             totalStudents: 1
+            //         }
+            //     }
+            // ]).toArray();
+
+            const instructorData = {
+                ...instructor,
+                rating: instructorRating[0]?.ratingAverage || 0
+            }
+            return instructorData;
+        });
+
+        const results = await Promise.all(promises);        
+
+        res.status(200).send(results);
     } catch (error) {
         console.error("Error fetching instructors:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -119,7 +169,8 @@ export const getPopularInstructors = async (req, res) => {
             const combinedScore = ((totalRatings + instructorRating[0]?.ratingAverage) * .4) + ((findTotalStudent[0]?.totalStudents) * .6); // 40% of (totalRating + instructorRating) and 60% of total Students
             const instructor = {
                 instructorId,
-                combinedScore: combinedScore ? combinedScore : 0
+                combinedScore: combinedScore ? combinedScore : 0,
+                rating: instructorRating[0]?.ratingAverage
             }
             return instructor;
         });
@@ -133,14 +184,19 @@ export const getPopularInstructors = async (req, res) => {
             .slice(0, 8);
 
         // Step 3: Fetch instructor details
-        const getInstructorPromise = sortedInstructors.map(async ({instructorId}) => {
+        const getInstructorPromise = sortedInstructors.map(async ({ instructorId, rating }) => {
             const options = {
-                projection: {                    
+                projection: {
                     name: 1,
+                    image: 1,
                     headline: 1
                 }
             }
-            return await usersCollection.findOne({ _id: instructorId }, options);
+            const instructorData = await usersCollection.findOne({ _id: instructorId }, options);
+            return {
+                ...instructorData,
+                rating
+            }
         });
 
         const popularInstructors = await Promise.all(getInstructorPromise);
