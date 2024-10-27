@@ -93,7 +93,7 @@ async function run() {
 //     console.log('server running on port: ', port);
 // })
 
-let coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection;
+let coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection, videoPlaylistCollection;
 
 // Connect to MongoDB
 client.connect()
@@ -104,6 +104,7 @@ client.connect()
         usersCollection = database.collection('users');
         cart = database.collection('selectedClass');
         paymentsCollection = database.collection('payments');
+        videoPlaylistCollection = database.collection('videoPlaylist');
 
         app.get('/', (req, res) => {
             res.send('server is running');
@@ -121,7 +122,7 @@ client.connect()
         console.error('Failed to connect to MongoDB', err)
     });
 
-export { coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection };
+export { coursesCollection, reviewsCollection, usersCollection, cart, paymentsCollection, videoPlaylistCollection };
 
 // API Routes
 app.use('/api/v1/user', userRouter);

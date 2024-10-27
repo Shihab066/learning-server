@@ -1,4 +1,6 @@
+import axios from 'axios';
 import { v2 as cloudinary } from 'cloudinary';
+import { usersCollection, videoPlaylistCollection } from '../index.js';
 // import crypto from 'crypto-js'
 
 // Configure Cloudinary
@@ -57,22 +59,50 @@ export const getVideoUploadSignature = (req, res) => {
     }
 };
 
-export const generateSignedUrl = (req, res) => {
-    const publicId = req.params.publicId;
-    const timestamp = Math.floor(Date.now() / 1000) + 3600;
+export const generateSignedUrl = (publicId) => {
     const url = cloudinary.url(publicId, {
-        resource_type: 'video', // Since this is for a video
+        resource_type: 'video',
         type: 'authenticated',
-        secure: true,
         sign_url: true,
-        timestamp: timestamp,
         format: 'm3u8',
-        streaming_profile: 'hd', // Supports adaptive streaming with CMAF
-        // transformation: [
-        //   {
-        //     flags: 'hlsv3' // Forces HLS version 3 compatibility with modern players
-        //   }
-        // ]
+        streaming_profile: 'auto',
+
     });
-    res.send(url)
+    return url;
+}
+
+export const addVideoPlaylist = async (req, res) => {
+    const { publicId } = req.params;
+    const videoUrl = generateSignedUrl(publicId);
+    let playlist = '';
+    if (videoUrl) {
+        const response = await axios.get(videoUrl);
+        playlist = {
+            publicId,
+            playlist: response.data
+        }
+        const result = await videoPlaylistCollection.insertOne(playlist);
+        res.send(result);
+    }
+}
+
+export const getVideoPlayList = async (req, res) => {
+    const { publicId } = req.params;
+    const videoUrl = generateSignedUrl(publicId);
+    const { playlist } = await videoPlaylistCollection.findOne({ publicId }, { projection: { playlist: 1 } });
+    if (videoUrl) {
+        const response = await axios.get(videoUrl);
+        const videoData = {
+            ...response,
+            data: playlist
+        }
+        console.log(videoData);
+        
+    }
+}
+
+export const getTest = async (req, res) => {
+    const cursor = usersCollection.find();
+    const result = await cursor.toArray();
+    res.send(result);
 }

@@ -17,7 +17,7 @@ export const generateToken = async (req, res) => {
         const token = jwt.sign(
             { email: decodedToken.email },
             process.env.SECRET_TOKEN,
-            { expiresIn: '1h' }
+            { expiresIn: '5h' }
         );
         res.status(200).json({ token });
     } catch (error) {
