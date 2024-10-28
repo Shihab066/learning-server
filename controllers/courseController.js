@@ -1,9 +1,11 @@
 import { ObjectId } from "mongodb";
-import { coursesCollection, reviewsCollection, usersCollection } from "../index.js";
+// import { coursesCollection, reviewsCollection, usersCollection } from "../collections.js";
 import { authorizeInstructor } from "./authorizationController.js";
+import { getCoursesCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
 
 export const getTopCourses = async (req, res) => {
-    try {
+    try {        
+        const coursesCollection = await getCoursesCollection();
         const topCoursesPipeLine = [
             {
                 $addFields: {
@@ -33,7 +35,7 @@ export const getTopCourses = async (req, res) => {
             }
         ]
 
-        const courses = await coursesCollection.aggregate(topCoursesPipeLine).toArray();
+        const courses = await coursesCollection?.aggregate(topCoursesPipeLine).toArray();
         res.status(200).json(courses);
     } catch (error) {
         console.error("Error fetching top classes:", error);
@@ -43,6 +45,7 @@ export const getTopCourses = async (req, res) => {
 
 export const getAllApprovedCourses = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const page = parseInt(req.query.page) || 1;
         const pageSize = parseInt(req.query.limit) || 10;
         const sortValue = parseInt(req.query.sort);
@@ -79,6 +82,9 @@ export const getAllApprovedCourses = async (req, res) => {
 
 export const getCourseDetails = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
+        const coursesCollection = await getCoursesCollection();
+        const reviewsCollection = await getReviewsCollection();
         const courseId = req.params.courseId;
 
         // Fetch course details with specified projection
@@ -180,6 +186,7 @@ export const getCourseDetails = async (req, res) => {
 
 export const getAllCourses = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const courses = await coursesCollection.find().toArray();
         res.status(200).json(courses);
     } catch (error) {
@@ -190,6 +197,7 @@ export const getAllCourses = async (req, res) => {
 
 export const getMoreCourseByInstructor = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const { instructorId } = req.params;
         const options = {
             projection: {
@@ -217,6 +225,7 @@ export const getMoreCourseByInstructor = async (req, res) => {
 
 export const getInstructorCourse = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
         const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
@@ -258,6 +267,7 @@ export const getInstructorCourse = async (req, res) => {
 
 export const getInstructorCourses = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const instructorId = req.params.instructorId;
         const searchValue = req.query.search || '';
         const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
@@ -291,6 +301,7 @@ export const getInstructorCourses = async (req, res) => {
 
 export const addNewCourse = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const newCourse = req.body;
         const modifiedCourse = {
             ...newCourse,
@@ -312,6 +323,7 @@ export const addNewCourse = async (req, res) => {
 
 export const updateCourseById = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
         const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
@@ -339,6 +351,7 @@ export const updateCourseById = async (req, res) => {
 
 export const updateCoursePublishStatus = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
         const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
@@ -365,6 +378,7 @@ export const updateCoursePublishStatus = async (req, res) => {
 
 export const updateCourseFeedback = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const id = req.params.id;
         const { feedback } = req.body;
 
@@ -390,6 +404,7 @@ export const updateCourseFeedback = async (req, res) => {
 
 export const updateCourseApprovedStatus = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const courseId = req.params.id;
         const { status } = req.body;
 
@@ -415,6 +430,7 @@ export const updateCourseApprovedStatus = async (req, res) => {
 
 export const deleteCourse = async (req, res) => {
     try {
+        const coursesCollection = await getCoursesCollection();
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
         const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);

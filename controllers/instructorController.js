@@ -1,7 +1,12 @@
-import { coursesCollection, reviewsCollection, usersCollection } from "../index.js";
+// import { coursesCollection, reviewsCollection, usersCollection } from "../collections.js";
+
+import { getCoursesCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
 
 export const getInstructor = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
+        const coursesCollection = await getCoursesCollection();
+        const reviewsCollection = await getReviewsCollection();
         const instructorId = req.params.instructorId;
 
         // Fetch instructor info
@@ -51,6 +56,8 @@ export const getInstructor = async (req, res) => {
 
 export const getInstructors = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
+        const reviewsCollection = await getReviewsCollection();
         // Step 1: Find all instructor emails
         const query = { role: 'instructor' };
         const options = {
@@ -119,6 +126,9 @@ export const getInstructors = async (req, res) => {
 
 export const getPopularInstructors = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
+        const coursesCollection = await getCoursesCollection();
+        const reviewsCollection = await getReviewsCollection();
         // Step 1: Find all instructor emails
         const query = { role: 'instructor' };
         const options = {

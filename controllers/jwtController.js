@@ -4,12 +4,14 @@ import path from 'path';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const serviceAccount = path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+// import service from '/service-account.json'
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
 });
 
-export const generateToken = async (req, res) => {
+export const generateToken = async (req, res) => { 
     const { uniqueKey } = req.body;
     try {
         const decodedToken = await admin.auth().verifyIdToken(uniqueKey);

@@ -1,7 +1,8 @@
-import { usersCollection } from "../index.js"
+import { getUsersCollection } from "../collections.js";
 
 export const verifyInstructor = async (req, res, next) => {
     try {
+        const usersCollection = await getUsersCollection();
         const email = req.decoded?.email;
         if (!email) {
             return res.status(403).json({ error: true, message: 'Forbidden Access' });
@@ -21,6 +22,7 @@ export const verifyInstructor = async (req, res, next) => {
 
 export const verifyAdmin = async (req, res, next) => {
     try {
+        const usersCollection = await getUsersCollection();
         const email = req.decoded?.email;
         if (!email) {
             return res.status(403).json({ error: true, message: 'Forbidden Access' });
@@ -40,6 +42,7 @@ export const verifyAdmin = async (req, res, next) => {
 
 // this functions is use to verify users authorization when call specific api
 export const authorizeUser = async (userId, decodedEmail) => {
+    const usersCollection = await getUsersCollection();
     const user = await usersCollection.findOne({ _id: userId }, { projection: { _id: 0, email: 1 } });
     if (!user) {
         return 403;
@@ -53,6 +56,7 @@ export const authorizeUser = async (userId, decodedEmail) => {
 }
 
 export const authorizeInstructor = async (userId, decodedEmail) => {
+    const usersCollection = await getUsersCollection();
     const user = await usersCollection.findOne({ _id: userId }, { projection: { _id: 0, email: 1, role: 1 } });
     if (!user) {
         return 403;
@@ -66,6 +70,7 @@ export const authorizeInstructor = async (userId, decodedEmail) => {
 }
 
 export const authorizeAdmin = async (userId, decodedEmail) => {
+    const usersCollection = await getUsersCollection();
     const user = await usersCollection.findOne({ _id: userId }, { projection: { _id: 0, email: 1, role: 1 } });
     if (!user) {
         return 403;

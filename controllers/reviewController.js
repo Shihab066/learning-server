@@ -1,7 +1,10 @@
-import { reviewsCollection } from "../index.js";
+// import { reviewsCollection } from "../collections.js";
+
+import { getReviewsCollection } from "../collections.js";
 
 export const getCourseRatings = async (req, res) => {
     try {
+        const reviewsCollection = await getReviewsCollection();
         const courseId = req.params.courseId;
         const query = { _courseId: courseId };
         const options = {
@@ -33,6 +36,7 @@ export const getCourseRatings = async (req, res) => {
 
 export const getCourseReviews = async (req, res) => {
     try {
+        const reviewsCollection = await getReviewsCollection();
         const courseId = req.params.courseId;
         const limit = parseInt(req.query.limit) || 3;
         const query = { _courseId: courseId };
@@ -59,6 +63,7 @@ export const getCourseReviews = async (req, res) => {
 
 export const getInstructorReviews = async (req, res) => {
     try {
+        const reviewsCollection = await getReviewsCollection();
         const instructorId = req.params.instructorId;
         const searchValue = req.query.search || '';
         const limit = parseInt(req.query.limit) || 4;
@@ -95,6 +100,7 @@ export const getInstructorReviews = async (req, res) => {
 
 export const addReview = async (req, res) => {
     try {
+        const reviewsCollection = await getReviewsCollection();
         const reviewData = req.body;
         const result = await reviewsCollection.insertOne(reviewData);
 

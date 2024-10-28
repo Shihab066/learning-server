@@ -1,7 +1,8 @@
-import { cart } from "../index.js";
+import { getCartCollection } from "../collections.js";
 
 export const getCartItemById = async (req, res) => {
     try {
+        const cart = await getCartCollection();
         const studentId = req.params.studentId;
 
         const query = { _studentId: studentId };
@@ -16,6 +17,7 @@ export const getCartItemById = async (req, res) => {
 
 export const addCourseToCart = async (req, res) => {
     try {
+        const cart = await getCartCollection();
         const studentId = req.params.studentId;
         const cartItem = req.body;
 
@@ -36,6 +38,7 @@ export const addCourseToCart = async (req, res) => {
 
 export const deleteCartItem = async (req, res) => {
     try {
+        const cart = await getCartCollection();
         const id = req.params.id;
         const query = { _id: new ObjectId(id) };
 

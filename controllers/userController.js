@@ -1,8 +1,10 @@
-import { usersCollection } from "../index.js";
+// import { usersCollection } from "../collections.js";
+import { getUsersCollection } from "../collections.js";
 import { authorizeUser, authorizeAdmin, authorizeInstructor } from "./authorizationController.js";
 
 export const getUserById = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
         const { id } = req.params;
         const authorizeStatus = await authorizeUser(id, req.decoded.email);
         if (authorizeStatus === 200) {
@@ -19,6 +21,7 @@ export const getUserById = async (req, res) => {
 
 export const getUsers = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
         const { adminId } = req.params;
         const authorizeStatus = await authorizeAdmin(adminId, req.decoded.email);
         if (authorizeStatus === 200) {
@@ -37,6 +40,7 @@ export const getUsers = async (req, res) => {
 
 export const getSignupMethodById = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
         const { id } = req.params;
         const signupMethod = await usersCollection.findOne(
             { _id: id },
@@ -56,6 +60,7 @@ export const getSignupMethodById = async (req, res) => {
 
 export const getUserRoleById = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
         const { id } = req.params;
         const role = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, role: 1 } });
 
@@ -72,6 +77,7 @@ export const getUserRoleById = async (req, res) => {
 
 export const updateUserById = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
         const { id } = req.params;
         const authorizeStatus = await authorizeUser(id, req.decoded.email);
         if (authorizeStatus === 200) {
@@ -107,6 +113,7 @@ export const updateUserById = async (req, res) => {
 
 export const updateInstructorProfileById = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
         const { id } = req.params;
         const authorizeStatus = await authorizeInstructor(id, req.decoded.email);
         if (authorizeStatus === 200) {
@@ -132,6 +139,7 @@ export const updateInstructorProfileById = async (req, res) => {
 
 export const updateUserRoleById = async (req, res) => {
     try {
+        const usersCollection = await getUsersCollection();
         const id = req.params.id;
         const authorizeStatus = await authorizeAdmin(id, req.decoded.email);
         if (authorizeStatus === 200) {

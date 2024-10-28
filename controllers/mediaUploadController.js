@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { v2 as cloudinary } from 'cloudinary';
-import { usersCollection, videoPlaylistCollection } from '../index.js';
+import { getVideoPlaylistCollection } from '../collections.js';
+// import { usersCollection, videoPlaylistCollection } from '../collections.js';
 // import crypto from 'crypto-js'
 
 // Configure Cloudinary
@@ -72,37 +73,56 @@ export const generateSignedUrl = (publicId) => {
 }
 
 export const addVideoPlaylist = async (req, res) => {
+    const videoPlaylistCollection = await getVideoPlaylistCollection();
     const { publicId } = req.params;
     const videoUrl = generateSignedUrl(publicId);
-    let playlist = '';
     if (videoUrl) {
         const response = await axios.get(videoUrl);
-        playlist = {
+        const signatureMatch = videoUrl.match(/s--([A-Za-z0-9_-]+)--/);
+        const signature = signatureMatch ? signatureMatch[0] : null;
+        const cloudinaryUrlPrefix = `https://res.cloudinary.com/${process.env.CLOUD_NAME}/video/authenticated/${signature}/sp_auto/`;
+        const regex = new RegExp(publicId, "g");
+        let videoPlayList = response.data;
+        videoPlayList = videoPlayList.replace(regex, `${cloudinaryUrlPrefix}${publicId}`);
+        const playlist = {
             publicId,
             playlist: response.data
         }
         const result = await videoPlaylistCollection.insertOne(playlist);
         res.send(result);
     }
-}
+};
 
 export const getVideoPlayList = async (req, res) => {
+    const videoPlaylistCollection = await getVideoPlaylistCollection();
     const { publicId } = req.params;
     const videoUrl = generateSignedUrl(publicId);
-    const { playlist } = await videoPlaylistCollection.findOne({ publicId }, { projection: { playlist: 1 } });
+    const {playlist} = await videoPlaylistCollection.findOne({ publicId }, { projection: { playlist: 1 } });
     if (videoUrl) {
-        const response = await axios.get(videoUrl);
-        const videoData = {
-            ...response,
-            data: playlist
-        }
-        console.log(videoData);
+        const response = await axios.get(videoUrl);        
+        // const signature = signatureMatch ? signatureMatch[0] : null;
+        // const cloudinaryUrlPrefix = `https://res.cloudinary.com/${process.env.CLOUD_NAME}/video/authenticated/${signature}/sp_auto/`;
+        const headers = response.headers;
+        // console.log(headers);
         
+        // res.set('Date', headers.date)
+        // res.set('x-smartlabs-baseurl', 'https://res.cloudinary.com/dg1rgmkkb/video/authenticated/s--JJUCDvtL--/sp_auto/ewqgnwr8agoltbtqjzj8.m3u8');
+        res.set('Content-Type', 'application/x-mpegURL');
+        // res.set('Content-Length', headers['Content-Length']);
+        // res.set('Connection', 'keep-alive');
+        // res.set('CF-Ray', headers['cf-ray']);
+        // res.set('Accept-Ranges', headers['accept-ranges']);
+        // res.set('Access-Control-Allow-Origin', '*');
+        // res.set('Cache-Control', 'no-cache');
+        // res.set('ETag', headers.etag);
+        // res.set('Last-Modified', headers['last-modified']);
+        // res.set('Strict-Transport-Security', headers['strict-transport-security']);
+        // res.set('Vary', headers.vary);
+        // res.set('access-control-expose-headers', 'x-smartlabs-baseurl');       
+        // res.set('server-timing', headers['server-timing']);        
+        // res.set('timing-allow-origin', '*');        
+        // res.set('x-request-id', headers['x-request-id']);
+        // res.set('Server', headers.server);
+        res.send(playlist);
     }
-}
-
-export const getTest = async (req, res) => {
-    const cursor = usersCollection.find();
-    const result = await cursor.toArray();
-    res.send(result);
-}
+};
