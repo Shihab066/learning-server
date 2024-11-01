@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { getSignupMethodById, getUserById, getUserRoleById, getUsers, updateInstructorProfileById, updateUserById, updateUserRoleById } from '../controllers/userController.js';
+import { addUser, getSignupMethodById, getUserById, getUserRoleById, getUsers, updateInstructorProfileById, updateUserById, updateUserRoleById } from '../controllers/userController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyAdmin, verifyInstructor } from '../controllers/authorizationController.js';
 
@@ -17,6 +17,9 @@ userRouter.get('/getSignupMethod/:id', getSignupMethodById);
 
 //get user role by userId.
 userRouter.get('/role/:id', getUserRoleById);
+
+//add user
+userRouter.post('/add', addUser);
 
 // update user info.
 userRouter.patch('/update/:id', verifyToken, updateUserById);

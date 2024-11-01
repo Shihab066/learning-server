@@ -75,6 +75,20 @@ export const getUserRoleById = async (req, res) => {
     }
 };
 
+export const addUser = async (req, res) => {
+    try {
+        const usersCollection = await getUsersCollection();
+        const userData = req.body;
+
+        const result = await usersCollection.insertOne(userData);
+
+        res.status(201).json({ message: "User added successfully", result });
+    } catch (error) {
+        console.error("Error adding user:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+}
+
 export const updateUserById = async (req, res) => {
     try {
         const usersCollection = await getUsersCollection();
@@ -84,8 +98,8 @@ export const updateUserById = async (req, res) => {
             const { name, image } = req.body;
 
             // Check if required fields are present
-            if (!name || !image) {
-                return res.status(400).json({ message: "Name and image are required." });
+            if (!name && !image) {
+                return res.status(400).json({ message: "Name or image are required." });
             }
 
             const filter = { _id: id };

@@ -4,7 +4,7 @@ import { authorizeInstructor } from "./authorizationController.js";
 import { getCoursesCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
 
 export const getTopCourses = async (req, res) => {
-    try {        
+    try {
         const coursesCollection = await getCoursesCollection();
         const topCoursesPipeLine = [
             {
@@ -13,7 +13,15 @@ export const getTopCourses = async (req, res) => {
                         $add: [
                             { $multiply: ['$students', .6] }, // Weight students (60%)
                             { $multiply: [{ $add: ['$rating', '$totalReviews'] }, .3] }, // Weight rating + totalReviews (30%)
-                            { $multiply: [{ $divide: ['$courseCompleted', '$students'] }, .1] }, // Weight CourseCompletion rate (10%)
+                            {
+                                $multiply: [{
+                                    $cond: {
+                                        if: { $eq: ['$students', 0] },
+                                        then: 0,
+                                        else: { $divide: ['$courseCompleted', '$students'] }
+                                    }
+                                }, .1]
+                            }, // Weight CourseCompletion rate (10%)
                         ]
                     }
                 }
