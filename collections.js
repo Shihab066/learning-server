@@ -35,7 +35,12 @@ export async function getUsersCollection() {
 
 export async function getCartCollection() {
     const database = await connectToDatabase();
-    return database.collection('selectedClass');
+    return database.collection('cart');
+}
+
+export async function getWishlistCollection() {
+    const database = await connectToDatabase();
+    return database.collection('wishList');
 }
 
 export async function getPaymentsCollection() {
