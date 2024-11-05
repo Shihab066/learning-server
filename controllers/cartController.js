@@ -1,12 +1,20 @@
-import { getCartCollection } from "../collections.js";
+import { ObjectId } from "mongodb";
+import { getCartCollection, getCoursesCollection } from "../collections.js";
 
-export const getCartItemById = async (req, res) => {
+export const getCartItems = async (req, res) => {
     try {
         const cart = await getCartCollection();
-        const studentId = req.params.studentId;
+        const { userId } = req.params;
 
-        const query = { _studentId: studentId };
-        const result = await cart.find(query).toArray();       
+        const options = {
+            projection: {
+                _id: 0,
+                courseId: 1,
+                savedForLater: 1
+            }
+        }
+
+        const result = await cart.find({ userId }, options).toArray();
 
         res.status(200).json(result);
     } catch (error) {
@@ -15,40 +23,121 @@ export const getCartItemById = async (req, res) => {
     }
 };
 
+export const getCartCourses = async (req, res) => {
+    try {
+        const { cartItems } = req.body;
+
+        // Extract the courseIds from the wishlist items
+        const courseIds = cartItems.map(item => new ObjectId(item.courseId));
+
+        // Find all courses with courseIds from the wishlist
+        const courseCollection = await getCoursesCollection();
+        const options = {
+            projection: {
+                instructorName: 1,
+                courseName: 1,
+                courseThumbnail: 1,
+                level: 1,
+                rating: 1,
+                totalReviews: 1,
+                totalModules: 1,
+                price: 1,
+                discount: 1
+            }
+        }
+        const courses = await courseCollection.aggregate([
+            {
+                $match: { _id: { $in: courseIds } }
+            },
+            {
+                $lookup: {
+                    from: "cart",
+                    localField: "_id",
+                    foreignField: "courseId",
+                    as: "cartItem"
+                }
+            },
+            {
+                $addFields: {
+                    savedForLater: { $arrayElemAt: ["$cartItem.savedForLater", 0] }
+                }
+            },
+            {
+                $project: {
+                    instructorName: 1,
+                    courseName: 1,
+                    courseThumbnail: 1,
+                    level: 1,
+                    rating: 1,
+                    totalReviews: 1,
+                    totalModules: 1,
+                    price: 1,
+                    discount: 1,
+                    savedForLater: 1
+                }
+            }
+        ]).toArray();
+
+        // Respond with the course details
+        res.json(courses);
+
+    } catch (error) {
+        console.error("Error fetching wishlist courses:", error);
+        res.status(500).json({ message: "An error occurred", error });
+    }
+};
+
 export const addCourseToCart = async (req, res) => {
     try {
-        const cart = await getCartCollection();
-        const studentId = req.params.studentId;
+        const cartCollection = await getCartCollection();
         const cartItem = req.body;
+        const modifiedCartItem = {
+            ...cartItem,
+            savedForLater: false
+        }
 
-        const query = { _id: studentId, _courseId: cartItem?._courseId };
-        const existingItem = await cart.findOne(query);
-
+        const existingItem = await cartCollection.findOne(cartItem);
         if (existingItem) {
             return res.status(409).json({ error: true, message: 'Course already added to cart.' });
         }
 
-        const result = await cart.insertOne(cartItem);
-        res.status(201).json({ message: "Course added to cart successfully.", result });
+        const result = await cartCollection.insertOne(modifiedCartItem);
+
+        res.status(201).json(result);
     } catch (error) {
         console.error("Error adding course to cart:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
 
+export const updateCartItemStatus = async (req, res) => {
+    try {
+        const cartCollection = await getCartCollection();
+        const { userId, courseId } = req.params;
+        const { savedForLater } = req.body;
+
+        const updateDoc = {
+            $set: {
+                savedForLater
+            }
+        };
+
+        const result = await cartCollection.updateOne({ userId, courseId }, updateDoc);
+        res.json(result);
+    } catch (error) {
+        console.error("Error updating cart item status:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
 export const deleteCartItem = async (req, res) => {
     try {
-        const cart = await getCartCollection();
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
+        const cartCollection = await getCartCollection();
+        const { userId, courseId } = req.params;
 
-        const result = await cart.deleteOne(query);
+        const result = await cartCollection.deleteOne({ userId, courseId });
 
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ message: "Cart item not found." });
-        }
-
-        res.status(200).json({ message: "Cart item deleted successfully.", result });
+        res.json(result);
     } catch (error) {
         console.error("Error deleting cart item:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });

@@ -1,16 +1,22 @@
 import express from "express";
-import { addCourseToCart, deleteCartItem, getCartItemById } from '../controllers/cartController.js';
+import { addCourseToCart, deleteCartItem, getCartCourses, getCartItems, updateCartItemStatus } from '../controllers/cartController.js';
 import { verifyToken } from "../controllers/jwtController.js";
 
 const cartRouter = express.Router();
 
-//get cart item by studentId.
-cartRouter.get('/get/:studentId',verifyToken, getCartItemById);
+//get cart item by userId.
+cartRouter.get('/get/:userId', getCartItems);
+
+//get cart courses by cartItems.
+cartRouter.post('/courses', getCartCourses);
 
 //add cart item.
-cartRouter.post('/add/:studentId',verifyToken, addCourseToCart);
+cartRouter.post('/add', addCourseToCart);
 
-// delete cart item by itemId.
-cartRouter.delete('/delete/:id',verifyToken, deleteCartItem);
+//update cart item status.
+cartRouter.patch('/patch/:userId/:courseId', updateCartItemStatus);
 
-export default cartRouter;
+// delete cart item by userId and courseId.
+cartRouter.delete('/delete/:userId/:courseId', deleteCartItem);
+
+export default cartRouter; 
