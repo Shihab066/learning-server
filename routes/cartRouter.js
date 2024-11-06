@@ -14,7 +14,7 @@ cartRouter.post('/courses', getCartCourses);
 cartRouter.post('/add', addCourseToCart);
 
 //update cart item status.
-cartRouter.patch('/patch/:userId/:courseId', updateCartItemStatus);
+cartRouter.patch('/update/:userId/:courseId', updateCartItemStatus);
 
 // delete cart item by userId and courseId.
 cartRouter.delete('/delete/:userId/:courseId', deleteCartItem);

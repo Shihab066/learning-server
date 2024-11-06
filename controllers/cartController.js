@@ -31,20 +31,7 @@ export const getCartCourses = async (req, res) => {
         const courseIds = cartItems.map(item => new ObjectId(item.courseId));
 
         // Find all courses with courseIds from the wishlist
-        const courseCollection = await getCoursesCollection();
-        const options = {
-            projection: {
-                instructorName: 1,
-                courseName: 1,
-                courseThumbnail: 1,
-                level: 1,
-                rating: 1,
-                totalReviews: 1,
-                totalModules: 1,
-                price: 1,
-                discount: 1
-            }
-        }
+        const courseCollection = await getCoursesCollection();     
         const courses = await courseCollection.aggregate([
             {
                 $match: { _id: { $in: courseIds } }
@@ -52,8 +39,14 @@ export const getCartCourses = async (req, res) => {
             {
                 $lookup: {
                     from: "cart",
-                    localField: "_id",
-                    foreignField: "courseId",
+                    let: { courseId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $eq: [{ $toObjectId: "$courseId" }, "$$courseId"] }  // Match courseId in wishlist with course _id
+                            }
+                        }
+                    ],
                     as: "cartItem"
                 }
             },
@@ -82,7 +75,7 @@ export const getCartCourses = async (req, res) => {
         res.json(courses);
 
     } catch (error) {
-        console.error("Error fetching wishlist courses:", error);
+        console.error("Error fetching cart courses:", error);
         res.status(500).json({ message: "An error occurred", error });
     }
 };
