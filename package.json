@@ -21,6 +21,6 @@
     "firebase-admin": "^12.6.0",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^5.9.2",
-    "stripe": "^12.18.0"
+    "stripe": "^17.3.1"
   }
 }
