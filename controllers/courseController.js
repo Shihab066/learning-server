@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 // import { coursesCollection, reviewsCollection, usersCollection } from "../collections.js";
 import { authorizeInstructor } from "./authorizationController.js";
-import { getCoursesCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
+import { getCoursesCollection, getEnrollmentCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
 
 export const getTopCourses = async (req, res) => {
     try {
@@ -465,3 +465,35 @@ export const deleteCourse = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+export const getStudentCourses = async (req, res) => {
+    try {
+        const enrollmentCollection = await getEnrollmentCollection();
+        const courseCollection = await getCoursesCollection();
+
+        const { studentId } = req.params;
+
+        const enrollmentCourseId = await enrollmentCollection.find({ userId: studentId }, { projection: { _id: 0, courseId: 1 } }).toArray();
+        const courseIds = enrollmentCourseId.map(item => new ObjectId(item.courseId));
+
+        const enrollmentCourses = await courseCollection.find(
+            {
+                _id: { $in: courseIds }
+            },
+            {
+                projection: {
+                    _id: 0,
+                    courseName: 1,
+                    courseThumbnail: 1,
+                    instructorName: 1
+                }
+            }
+        ).toArray();
+
+        res.json(enrollmentCourses)
+
+    } catch (error) {
+        console.error("Error fetching course:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+}

@@ -68,6 +68,7 @@ export const retrieveCheckoutSession = async (req, res) => {
 
         // verify if the token exist
         const isTokenExist = await temporaryTokenCollection.findOne({ token });
+        
         if (isTokenExist) {
             await temporaryTokenCollection.deleteOne({ token });
 

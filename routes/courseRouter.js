@@ -1,5 +1,5 @@
 import express from 'express';
-import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseDetails, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCoursePublishStatus } from '../controllers/courseController.js';
+import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseDetails, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getStudentCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCoursePublishStatus } from '../controllers/courseController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyAdmin, verifyInstructor } from '../controllers/authorizationController.js';
 
@@ -25,6 +25,9 @@ courseRouter.get('/instructorCourse', verifyToken, verifyInstructor, getInstruct
 
 //get all instructor courses by instructorId.
 courseRouter.get('/instructorCourses/:instructorId', verifyToken, verifyInstructor, getInstructorCourses);
+
+// get student courses by studentId.
+courseRouter.get('/studentCourses/:studentId', getStudentCourses)
 
 //add new course.
 courseRouter.post('/add', verifyToken, verifyInstructor, addNewCourse);
