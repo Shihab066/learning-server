@@ -91,7 +91,8 @@ export const retrieveCheckoutSession = async (req, res) => {
                 status: paymentIntent.status,
                 paymentMethod: paymentIntent.payment_method_types,
                 transactionId: paymentIntent.id,
-                receipt: charges.data[0].receipt_url
+                receipt: charges.data[0].receipt_url,
+                purchaseDate: new Date()
             };
 
             await paymentCollection.insertOne(paymentInfo);
@@ -141,3 +142,30 @@ export const expireSession = async (req, res) => {
     }
 }
 
+// Retrieve payment info of student by studentID
+export const getPaymentsData = async (req, res) => {
+    try {
+        const paymentCollection = await getPaymentsCollection();
+        const { studentId } = req.params;
+
+        const paymentsData = await paymentCollection.find(
+            { userId: studentId },
+            {
+                projection: {
+                    courseIds: 1,
+                    amount: 1,
+                    status: 1,
+                    transactionId: 1,
+                    receipt: 1,
+                    purchaseDate: 1
+                }
+            }
+        ).toArray();
+
+        res.json({ paymentsData });
+
+    } catch (error) {
+        console.error('Error retriving payments data:', error);
+        res.status(500).json({ error: error.message });
+    }
+}
