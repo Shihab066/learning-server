@@ -130,3 +130,27 @@ export const addReview = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+export const getMyReviews = async (req, res) => {
+    try {
+        const reviewsCollection = await getReviewsCollection();
+        const { studentId } = req.params;
+
+        const reviews = await reviewsCollection.find(
+            {
+                _studentId: studentId
+            },
+            {
+                projection: {
+                    rating: 1,
+                    review: 1
+                }
+            }
+        ).toArray();
+
+        res.json(reviews)
+    } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+}

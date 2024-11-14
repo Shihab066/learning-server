@@ -1,9 +1,9 @@
 import express from 'express';
-import { addReview, getCourseRatings, getCourseReviews, getInstructorReviews } from '../controllers/reviewController.js';
+import { addReview, getCourseRatings, getCourseReviews, getInstructorReviews, getMyReviews } from '../controllers/reviewController.js';
 
 const reviewRouter = express.Router();
-// get course ratings by courseID
-reviewRouter.get('/ratings/:courseId', getCourseRatings);
+// get reviews my studentId
+reviewRouter.get('/my-reviews/:studentId', getMyReviews);
 
 // get course reviews by courseID
 reviewRouter.get('/get/:courseId', getCourseReviews);

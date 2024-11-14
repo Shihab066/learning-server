@@ -20,20 +20,22 @@ export const createCheckoutSession = async (req, res) => {
                 currency: 'usd',
                 product_data: {
                     name: product.name,
-                    images: [product.image],
-                    metadata: {
-                        course_id: product.courseId
-                    }
+                    images: [product.image]                    
                 },
-                unit_amount: parseInt(product.price * 100), // price in cents (e.g., $20.00 should be sent as 2000)
+                unit_amount: parseInt(product.price * 100),
             },
             quantity: 1,
         }));
 
-        const coursesId = products.map(product => product.courseId);
+        const courses = products.map(product => (
+            {
+                courseId: product.courseId,
+                courseName: product.name
+            }
+        ));
 
         // generate an unique token and save to database 
-        const token = generateTemporaryToken(512);        
+        const token = generateTemporaryToken(512);
         await temporaryTokenCollection.insertOne({ token })
 
         const session = await stripe.checkout.sessions.create({
@@ -45,7 +47,7 @@ export const createCheckoutSession = async (req, res) => {
             expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
             metadata: {
                 user_id: userId,
-                courses_id: JSON.stringify(coursesId)
+                courses: JSON.stringify(courses)
             }
         });
 
@@ -68,7 +70,7 @@ export const retrieveCheckoutSession = async (req, res) => {
 
         // verify if the token exist
         const isTokenExist = await temporaryTokenCollection.findOne({ token });
-        
+
         if (isTokenExist) {
             await temporaryTokenCollection.deleteOne({ token });
 
@@ -81,12 +83,14 @@ export const retrieveCheckoutSession = async (req, res) => {
             // Retrieve updated charge information
             const charges = await stripe.charges.list({ payment_intent: session.payment_intent });
 
-            const courseIds = JSON.parse(session.metadata.courses_id);
+            const courses = JSON.parse(session.metadata.courses);
+
+            const courseIds = courses.map(course => course.courseId);
 
             // Insert payment info to the database
             const paymentInfo = {
                 userId: session.metadata.user_id,
-                courseIds: courseIds,
+                courses: courses,
                 amount: paymentIntent.amount_received / 100,
                 status: paymentIntent.status,
                 paymentMethod: paymentIntent.payment_method_types,
@@ -103,7 +107,8 @@ export const retrieveCheckoutSession = async (req, res) => {
                 courseId: courseId,
                 enrollmentDate: new Date(),
                 paymentId: paymentIntent.id,
-                status: 'active'
+                status: 'active',
+                reviewed: false
             }));
 
             await enrollmentCollection.insertMany(enrollmentInfo, { ordered: true });
@@ -152,7 +157,7 @@ export const getPaymentsData = async (req, res) => {
             { userId: studentId },
             {
                 projection: {
-                    courseIds: 1,
+                    courses: 1,
                     amount: 1,
                     status: 1,
                     transactionId: 1,
@@ -160,9 +165,9 @@ export const getPaymentsData = async (req, res) => {
                     purchaseDate: 1
                 }
             }
-        ).toArray();
+        ).sort({purchaseDate: -1}).toArray();
 
-        res.json({ paymentsData });
+        res.json(paymentsData);
 
     } catch (error) {
         console.error('Error retriving payments data:', error);
