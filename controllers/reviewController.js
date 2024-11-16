@@ -42,7 +42,7 @@ export const getCourseReviews = async (req, res) => {
         const query = { _courseId: courseId };
         const options = {
             projection: {
-                _id: 0,                
+                _id: 0,
                 userName: 1,
                 userImage: 1,
                 rating: 1,
@@ -54,7 +54,7 @@ export const getCourseReviews = async (req, res) => {
         const totalReviews = await reviewsCollection.countDocuments(query);
         const reviews = await reviewsCollection.find(query, options).limit(limit).toArray();
 
-        res.status(200).json({reviews, totalReviews});
+        res.status(200).json({ reviews, totalReviews });
     } catch (error) {
         console.error("Error fetching course reviews:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -142,8 +142,12 @@ export const getMyReviews = async (req, res) => {
             },
             {
                 projection: {
+                    _courseId: 1,
+                    courseName: 1,
+                    courseThumbnail: 1,
                     rating: 1,
-                    review: 1
+                    review: 1,
+                    date: 1,
                 }
             }
         ).toArray();
