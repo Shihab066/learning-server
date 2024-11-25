@@ -1,6 +1,7 @@
 // import { reviewsCollection } from "../collections.js";
 
-import { getReviewsCollection } from "../collections.js";
+import { ObjectId } from "mongodb";
+import { getCoursesCollection, getEnrollmentCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
 
 export const getCourseRatings = async (req, res) => {
     try {
@@ -32,7 +33,7 @@ export const getCourseRatings = async (req, res) => {
         console.error("Error fetching course ratings:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
-}
+};
 
 export const getCourseReviews = async (req, res) => {
     try {
@@ -101,10 +102,30 @@ export const getInstructorReviews = async (req, res) => {
 export const addReview = async (req, res) => {
     try {
         const reviewsCollection = await getReviewsCollection();
-        const reviewData = req.body;
+        const usersCollection = await getUsersCollection();
+        const classesCollection = await getCoursesCollection();
+        const enrollmentCollection = await getEnrollmentCollection();
+        const { courseId, courseName, courseThumbnail, studentId, userName, userImage, rating, review, } = req.body;
+
+        const instructorId = await usersCollection.findOne({ _id: new ObjectId(courseId) }, { projection: { _instructorId: 1 } });
+        const reviewData = {
+            _courseId: courseId,
+            _studentId: studentId,
+            _instructorId: instructorId._instructorId,
+            userName,
+            userImage,
+            rating,
+            review,
+            date: new Date(),
+            courseName,
+            courseThumbnail
+        };
+
         const result = await reviewsCollection.insertOne(reviewData);
 
-        const courseId = reviewData?._courseId;
+        // change state of reviewed to true
+        await enrollmentCollection.updateOne({ courseId }, { $set: { reviewed: true } });
+
         const query = { _courseId: courseId };
         const options = { projection: { _id: 0, rating: 1 } };
 
@@ -112,12 +133,12 @@ export const addReview = async (req, res) => {
         const ratingsArr = ratings.map(rating => rating.rating);
 
         const totalReviews = ratingsArr.length;
-        const rating = totalReviews > 0 ? parseFloat((ratingsArr.reduce((acc, curr) => acc + curr, 0) / totalReviews).toFixed(1)) : 0;
+        const averageRating = totalReviews > 0 ? parseFloat((ratingsArr.reduce((acc, curr) => acc + curr, 0) / totalReviews).toFixed(1)) : 0;
 
         const filter = { _id: new ObjectId(courseId) };
         const updateCourseRating = {
             $set: {
-                rating,
+                rating: averageRating,
                 totalReviews
             }
         };
@@ -157,4 +178,17 @@ export const getMyReviews = async (req, res) => {
         console.error("Error fetching reviews:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
-}
+};
+
+export const getPendingReviews = async (req, res) => {
+    try {
+        const enrollmentCollection = await getEnrollmentCollection();
+        const { studentId } = req.params;
+
+        const unratedCourses = await enrollmentCollection.find({ userId: studentId, reviewed: false }, { projection: { courseId: 1, courseThumbnail: 1, enrollmentDate: 1 } }).toArray();
+        res.json(unratedCourses)
+    } catch (error) {
+        console.error("Error fetching unratedCourses:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};

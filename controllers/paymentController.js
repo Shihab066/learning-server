@@ -20,7 +20,7 @@ export const createCheckoutSession = async (req, res) => {
                 currency: 'usd',
                 product_data: {
                     name: product.name,
-                    images: [product.image]                    
+                    images: [product.image]
                 },
                 unit_amount: parseInt(product.price * 100),
             },
@@ -30,7 +30,8 @@ export const createCheckoutSession = async (req, res) => {
         const courses = products.map(product => (
             {
                 courseId: product.courseId,
-                courseName: product.name
+                courseName: product.name,
+                courseThumbnail: product.image
             }
         ));
 
@@ -102,9 +103,10 @@ export const retrieveCheckoutSession = async (req, res) => {
             await paymentCollection.insertOne(paymentInfo);
 
             // Insert enrollment info to the database
-            const enrollmentInfo = courseIds.map(courseId => ({
+            const enrollmentInfo = courses.map(({ courseId, courseThumbnail }) => ({
                 userId: session.metadata.user_id,
-                courseId: courseId,
+                courseId,
+                courseThumbnail,
                 enrollmentDate: new Date(),
                 paymentId: paymentIntent.id,
                 status: 'active',
@@ -165,7 +167,7 @@ export const getPaymentsData = async (req, res) => {
                     purchaseDate: 1
                 }
             }
-        ).sort({purchaseDate: -1}).toArray();
+        ).sort({ purchaseDate: -1 }).toArray();
 
         res.json(paymentsData);
 

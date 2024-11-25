@@ -1,10 +1,13 @@
 import express from 'express';
-import { addReview, getCourseRatings, getCourseReviews, getInstructorReviews, getMyReviews } from '../controllers/reviewController.js';
+import { addReview, getCourseRatings, getCourseReviews, getInstructorReviews, getMyReviews, getPendingReviews } from '../controllers/reviewController.js';
 
 const reviewRouter = express.Router();
 
 // get reviews my studentId
 reviewRouter.get('/my-reviews/:studentId', getMyReviews);
+
+// get pending reviews my studentId
+reviewRouter.get('/pending-reviews/:studentId', getPendingReviews);
 
 // get course reviews by courseID
 reviewRouter.get('/get/:courseId', getCourseReviews);
