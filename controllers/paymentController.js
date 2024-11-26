@@ -103,9 +103,10 @@ export const retrieveCheckoutSession = async (req, res) => {
             await paymentCollection.insertOne(paymentInfo);
 
             // Insert enrollment info to the database
-            const enrollmentInfo = courses.map(({ courseId, courseThumbnail }) => ({
+            const enrollmentInfo = courses.map(({ courseId, courseName, courseThumbnail }) => ({
                 userId: session.metadata.user_id,
                 courseId,
+                courseName,
                 courseThumbnail,
                 enrollmentDate: new Date(),
                 paymentId: paymentIntent.id,

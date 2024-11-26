@@ -183,12 +183,54 @@ export const getMyReviews = async (req, res) => {
 export const getPendingReviews = async (req, res) => {
     try {
         const enrollmentCollection = await getEnrollmentCollection();
+        const coursesCollection = await getCoursesCollection(); // Replace with your function to get the courses collection
         const { studentId } = req.params;
 
-        const unratedCourses = await enrollmentCollection.find({ userId: studentId, reviewed: false }, { projection: { courseId: 1, courseThumbnail: 1, enrollmentDate: 1 } }).toArray();
-        res.json(unratedCourses)
+        const pipeline = [
+            // Match enrollments for the specific student and pending reviews
+            { $match: { userId: studentId, reviewed: false } },
+
+            // Project the necessary fields from the enrollment document
+            { $project: { courseId: 1, enrollmentDate: 1 } },
+
+            // Add a field with converted ObjectId for the lookup
+            {
+                $addFields: {
+                    courseObjectId: { $toObjectId: "$courseId" }
+                }
+            },
+
+            // Lookup course details from the courses collection
+            {
+                $lookup: {
+                    from: "classes", // Name of your courses collection
+                    localField: "courseObjectId", // Field in enrollmentCollection
+                    foreignField: "_id", // Field in coursesCollection
+                    as: "courseDetails" // Output array containing course info
+                }
+            },
+
+            // Unwind courseDetails array to make it a single object
+            { $unwind: "$courseDetails" },
+
+            // Project the final structure of the result
+            {
+                $project: {
+                    courseId: 1,
+                    enrollmentDate: 1,
+                    courseName: "$courseDetails.courseName",
+                    courseThumbnail: "$courseDetails.courseThumbnail",
+                    instructorName: "$courseDetails.instructorName"
+                }
+            }
+        ];
+
+        // Execute the aggregation pipeline
+        const results = await enrollmentCollection.aggregate(pipeline).toArray();
+
+        res.json(results);
     } catch (error) {
-        console.error("Error fetching unratedCourses:", error);
+        console.error("Error fetching pending reviews:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
