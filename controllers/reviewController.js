@@ -101,32 +101,26 @@ export const getInstructorReviews = async (req, res) => {
 
 export const addReview = async (req, res) => {
     try {
-        const reviewsCollection = await getReviewsCollection();
-        const usersCollection = await getUsersCollection();
-        const classesCollection = await getCoursesCollection();
+        const reviewsCollection = await getReviewsCollection();       
+        const coursesCollection = await getCoursesCollection();
         const enrollmentCollection = await getEnrollmentCollection();
-        const { courseId, courseName, courseThumbnail, studentId, userName, userImage, rating, review, } = req.body;
 
-        const instructorId = await usersCollection.findOne({ _id: new ObjectId(courseId) }, { projection: { _instructorId: 1 } });
+        const reviewInfo = req.body;
+        const { _courseId } = reviewInfo;
+        
+        const courseInfo = await coursesCollection.findOne({ _id: new ObjectId(_courseId) }, { projection: { _id: 0, _instructorId: 1, courseName: 1, courseThumbnail: 1 } });
         const reviewData = {
-            _courseId: courseId,
-            _studentId: studentId,
-            _instructorId: instructorId._instructorId,
-            userName,
-            userImage,
-            rating,
-            review,
-            date: new Date(),
-            courseName,
-            courseThumbnail
+            ...reviewInfo,                       
+            ...courseInfo,
+            date: new Date()
         };
 
         const result = await reviewsCollection.insertOne(reviewData);
 
         // change state of reviewed to true
-        await enrollmentCollection.updateOne({ courseId }, { $set: { reviewed: true } });
+        await enrollmentCollection.updateOne({ courseId: _courseId }, { $set: { reviewed: true } });
 
-        const query = { _courseId: courseId };
+        const query = { _courseId };
         const options = { projection: { _id: 0, rating: 1 } };
 
         const ratings = await reviewsCollection.find(query, options).toArray();
@@ -135,7 +129,7 @@ export const addReview = async (req, res) => {
         const totalReviews = ratingsArr.length;
         const averageRating = totalReviews > 0 ? parseFloat((ratingsArr.reduce((acc, curr) => acc + curr, 0) / totalReviews).toFixed(1)) : 0;
 
-        const filter = { _id: new ObjectId(courseId) };
+        const filter = { _id: new ObjectId(_courseId) };
         const updateCourseRating = {
             $set: {
                 rating: averageRating,
@@ -143,7 +137,7 @@ export const addReview = async (req, res) => {
             }
         };
 
-        await classesCollection.updateOne(filter, updateCourseRating);
+        await coursesCollection.updateOne(filter, updateCourseRating);
 
         res.status(201).json(result);
     } catch (error) {

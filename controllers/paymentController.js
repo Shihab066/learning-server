@@ -30,8 +30,7 @@ export const createCheckoutSession = async (req, res) => {
         const courses = products.map(product => (
             {
                 courseId: product.courseId,
-                courseName: product.name,
-                courseThumbnail: product.image
+                courseName: product.name               
             }
         ));
 
@@ -103,11 +102,9 @@ export const retrieveCheckoutSession = async (req, res) => {
             await paymentCollection.insertOne(paymentInfo);
 
             // Insert enrollment info to the database
-            const enrollmentInfo = courses.map(({ courseId, courseName, courseThumbnail }) => ({
+            const enrollmentInfo = courseIds.map(courseId => ({
                 userId: session.metadata.user_id,
                 courseId,
-                courseName,
-                courseThumbnail,
                 enrollmentDate: new Date(),
                 paymentId: paymentIntent.id,
                 status: 'active',
