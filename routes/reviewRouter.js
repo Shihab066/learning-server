@@ -1,5 +1,5 @@
 import express from 'express';
-import { addReview, getCourseRatings, getCourseReviews, getInstructorReviews, getMyReviews, getPendingReviews } from '../controllers/reviewController.js';
+import { addReview, getCourseRatings, getCourseReviews, getInstructorReviews, getMyReviews, getPendingReviews, updateReview } from '../controllers/reviewController.js';
 
 const reviewRouter = express.Router();
 
@@ -17,6 +17,9 @@ reviewRouter.get('/instructor/:instructorId', getInstructorReviews);
 
 // add review by courseID. Add a logic to check if the user really enrolled the course
 reviewRouter.post('/add', addReview);
+
+// add review by courseID. Add a logic to check if the user really enrolled the course
+reviewRouter.post('/update', updateReview);
 
 
 export default reviewRouter; 

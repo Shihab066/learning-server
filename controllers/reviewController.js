@@ -101,16 +101,16 @@ export const getInstructorReviews = async (req, res) => {
 
 export const addReview = async (req, res) => {
     try {
-        const reviewsCollection = await getReviewsCollection();       
+        const reviewsCollection = await getReviewsCollection();
         const coursesCollection = await getCoursesCollection();
         const enrollmentCollection = await getEnrollmentCollection();
 
         const reviewInfo = req.body;
         const { _courseId } = reviewInfo;
-        
+
         const courseInfo = await coursesCollection.findOne({ _id: new ObjectId(_courseId) }, { projection: { _id: 0, _instructorId: 1, courseName: 1, courseThumbnail: 1 } });
         const reviewData = {
-            ...reviewInfo,                       
+            ...reviewInfo,
             ...courseInfo,
             date: new Date()
         };
@@ -119,6 +119,53 @@ export const addReview = async (req, res) => {
 
         // change state of reviewed to true
         await enrollmentCollection.updateOne({ courseId: _courseId }, { $set: { reviewed: true } });
+
+        const query = { _courseId };
+        const options = { projection: { _id: 0, rating: 1 } };
+
+        const ratings = await reviewsCollection.find(query, options).toArray();
+        const ratingsArr = ratings.map(rating => rating.rating);
+
+        const totalReviews = ratingsArr.length;
+        const averageRating = totalReviews > 0 ? parseFloat((ratingsArr.reduce((acc, curr) => acc + curr, 0) / totalReviews).toFixed(1)) : 0;
+
+        const filter = { _id: new ObjectId(_courseId) };
+        const updateCourseRating = {
+            $set: {
+                rating: averageRating,
+                totalReviews
+            }
+        };
+
+        await coursesCollection.updateOne(filter, updateCourseRating);
+
+        res.status(201).json(result);
+    } catch (error) {
+        console.error("Error adding review:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const updateReview = async (req, res) => {
+    try {
+        const reviewsCollection = await getReviewsCollection();
+        const coursesCollection = await getCoursesCollection();        
+
+        const reviewInfo = req.body;
+        const { _courseId, _studentId, rating, review } = reviewInfo;
+
+        const reviewFilter = {
+            _courseId,
+            _studentId
+        };
+        const updatedReviewData = {
+            $set: {
+                rating,
+                review
+            }
+        };
+
+        const result = await reviewsCollection.updateOne(reviewFilter, updatedReviewData);        
 
         const query = { _courseId };
         const options = { projection: { _id: 0, rating: 1 } };
