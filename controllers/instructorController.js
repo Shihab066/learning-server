@@ -94,28 +94,15 @@ export const getInstructors = async (req, res) => {
                     }
                 }
             ]).toArray();
-            //     {
-            //         $match: { _instructorId: instructorId }
-            //     },
-            //     {
-            //         $group: { _id: null, totalStudents: { $sum: '$students' } }
-            //     },
-            //     {
-            //         $project: {
-            //             _id: 0,
-            //             totalStudents: 1
-            //         }
-            //     }
-            // ]).toArray();
 
             const instructorData = {
                 ...instructor,
-                rating: instructorRating[0]?.ratingAverage || 0
+                rating: instructorRating[0]?.ratingAverage > 0 ? parseFloat(instructorRating[0]?.ratingAverage).toFixed(1) : 0
             }
             return instructorData;
         });
 
-        const results = await Promise.all(promises);        
+        const results = await Promise.all(promises);
 
         res.status(200).send(results);
     } catch (error) {
@@ -180,7 +167,7 @@ export const getPopularInstructors = async (req, res) => {
             const instructor = {
                 instructorId,
                 combinedScore: combinedScore ? combinedScore : 0,
-                rating: instructorRating[0]?.ratingAverage
+                rating: instructorRating[0]?.ratingAverage > 0 ? parseFloat(instructorRating[0]?.ratingAverage).toFixed(1) : 0
             }
             return instructor;
         });
