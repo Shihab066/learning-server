@@ -149,7 +149,7 @@ export const addReview = async (req, res) => {
 export const updateReview = async (req, res) => {
     try {
         const reviewsCollection = await getReviewsCollection();
-        const coursesCollection = await getCoursesCollection();        
+        const coursesCollection = await getCoursesCollection();
 
         const reviewInfo = req.body;
         const { _courseId, _studentId, rating, review } = reviewInfo;
@@ -165,7 +165,7 @@ export const updateReview = async (req, res) => {
             }
         };
 
-        const result = await reviewsCollection.updateOne(reviewFilter, updatedReviewData);        
+        const result = await reviewsCollection.updateOne(reviewFilter, updatedReviewData);
 
         const query = { _courseId };
         const options = { projection: { _id: 0, rating: 1 } };
@@ -197,7 +197,9 @@ export const getMyReviews = async (req, res) => {
     try {
         const reviewsCollection = await getReviewsCollection();
         const { studentId } = req.params;
+        const limit = parseInt(req.query.limit);
 
+        const reviewsCount = await reviewsCollection.countDocuments({ _studentId: studentId });
         const reviews = await reviewsCollection.find(
             {
                 _studentId: studentId
@@ -212,9 +214,9 @@ export const getMyReviews = async (req, res) => {
                     date: 1,
                 }
             }
-        ).toArray();
+        ).limit(limit || 6).sort({ enrollmentDate: -1 }).toArray();
 
-        res.json(reviews)
+        res.json({ reviewsCount, reviews });
     } catch (error) {
         console.error("Error fetching reviews:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -224,8 +226,8 @@ export const getMyReviews = async (req, res) => {
 export const getPendingReviews = async (req, res) => {
     try {
         const enrollmentCollection = await getEnrollmentCollection();
-        const coursesCollection = await getCoursesCollection(); // Replace with your function to get the courses collection
         const { studentId } = req.params;
+        const limit = parseInt(req.query.limit);
 
         const pipeline = [
             // Match enrollments for the specific student and pending reviews
@@ -244,10 +246,10 @@ export const getPendingReviews = async (req, res) => {
             // Lookup course details from the courses collection
             {
                 $lookup: {
-                    from: "classes", // Name of your courses collection
-                    localField: "courseObjectId", // Field in enrollmentCollection
-                    foreignField: "_id", // Field in coursesCollection
-                    as: "courseDetails" // Output array containing course info
+                    from: "classes",
+                    localField: "courseObjectId",
+                    foreignField: "_id",
+                    as: "courseDetails"
                 }
             },
 
@@ -267,9 +269,10 @@ export const getPendingReviews = async (req, res) => {
         ];
 
         // Execute the aggregation pipeline
-        const results = await enrollmentCollection.aggregate(pipeline).toArray();
+        const pendingReviewsCount = await enrollmentCollection.countDocuments({ userId: studentId, reviewed: false });
+        const pendingReviews = await enrollmentCollection.aggregate(pipeline).limit(limit || 6).sort({ enrollmentDate: -1 }).toArray();
 
-        res.json(results);
+        res.json({ pendingReviewsCount, pendingReviews });
     } catch (error) {
         console.error("Error fetching pending reviews:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
