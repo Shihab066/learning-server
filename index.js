@@ -12,6 +12,7 @@ import jwtRouter from './routes/jwtRouter.js';
 import mediaUploadRouter from './routes/mediaUploadRouter.js';
 import wishlistRouter from './routes/wishlistRouter.js';
 import paymentRouter from './routes/paymentRouter.js';
+import feedbackRouter from './routes/feedbackRouter.js';
 dotenv.config();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
@@ -141,6 +142,7 @@ app.use('/api/v1/token', jwtRouter);
 app.use('/api/v1/upload', mediaUploadRouter);
 app.use('/api/v1/wishlist', wishlistRouter);
 app.use('/api/v1/payment', paymentRouter);
+app.use('/api/v1/feedback', feedbackRouter);
 
 app.get('/', async (req, res) => {
     res.send('Server is running');

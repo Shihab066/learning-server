@@ -58,8 +58,12 @@ export async function getVideoPlaylistCollection() {
     return database.collection('videoPlaylist');
 };
 
-
 export async function getTemporaryTokensCollection() {
     const database = await connectToDatabase();
     return database.collection('temporaryTokens');
+};
+
+export async function getFeedbackCollection() {
+    const database = await connectToDatabase();
+    return database.collection('feedback');
 };
