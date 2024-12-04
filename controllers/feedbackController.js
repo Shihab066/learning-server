@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { getFeedbackCollection } from "../collections"
+import { getFeedbackCollection } from "../collections.js"
 
 export const getAllFeedback = async (req, res) => {
     try {
@@ -37,7 +37,7 @@ export const getFeedbackById = async (req, res) => {
             }
         };
 
-        const feedback = await feedbackCollection.findOne({ userId }, options).toArray();
+        const feedback = await feedbackCollection.findOne({ userId }, options);
         res.status(200).json(feedback);
     } catch (error) {
         console.error("Error fetching feedback:", error);
@@ -59,7 +59,7 @@ export const addFeedback = async (req, res) => {
 
         // Insert feedback into the collection
         const result = await feedbackCollection.insertOne(feedback);
-        res.status(201).json({ message: "Feedback added successfully", result });
+        res.status(201).json(result);
     } catch (error) {
         console.error("Error adding feedback:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -69,20 +69,20 @@ export const addFeedback = async (req, res) => {
 export const updateFeedback = async (req, res) => {
     try {
         const feedbackCollection = await getFeedbackCollection();
-        const updatedFeedback = req.body;     //updatedFeedback only contain userId, headline and feedback     
-        const userId = updatedFeedback;
+        const { userId, headline, feedback } = req.body;     //updatedFeedback only contain userId, headline and feedback             
 
         const filter = {
             userId
         };
         const updateDoc = {
             $set: {
-                updatedFeedback
+                headline,
+                feedback
             }
         };
 
         const result = await feedbackCollection.updateOne(filter, updateDoc);
-        res.status(200).json({ message: "Feedback update successfully", result });
+        res.status(200).json(result);
     } catch (error) {
         console.error("Error updating feedback:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -98,7 +98,7 @@ export const removeFeedback = async (req, res) => {
             _id: new ObjectId(feedbackId),
             userId
         });
-        res.status(200).json({ message: "Feedback remove successfully", result });
+        res.status(200).json(result);
     } catch (error) {
         console.error("Error removing feedback:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
