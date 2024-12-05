@@ -1,5 +1,5 @@
 import express from 'express';
-import { addFeedback, getAllFeedback, getFeedbackById, updateFeedback } from '../controllers/feedbackController.js';
+import { addFeedback, getAllFeedback, getFeedbackById, removeFeedback, updateFeedback } from '../controllers/feedbackController.js';
 
 const feedbackRouter = express.Router();
 
@@ -15,6 +15,6 @@ feedbackRouter.post('/add', addFeedback);
 feedbackRouter.patch('/update', updateFeedback);
 
 // jwt verification and autorization needed
-feedbackRouter.delete('/delete/:userId/:feedbackId', updateFeedback);
+feedbackRouter.delete('/delete/:userId', removeFeedback);
 
 export default feedbackRouter;

@@ -32,7 +32,7 @@ export const getFeedbackById = async (req, res) => {
                 _id: 0,
                 name: 1,
                 profileImage: 1,
-                heading: 1,
+                headline: 1,
                 feedback: 1
             }
         };
@@ -81,7 +81,7 @@ export const updateFeedback = async (req, res) => {
             }
         };
 
-        const result = await feedbackCollection.updateOne(filter, updateDoc);
+        const result = await feedbackCollection.updateOne(filter, updateDoc, { upsert: false });
         res.status(200).json(result);
     } catch (error) {
         console.error("Error updating feedback:", error);
@@ -92,12 +92,9 @@ export const updateFeedback = async (req, res) => {
 export const removeFeedback = async (req, res) => {
     try {
         const feedbackCollection = await getFeedbackCollection();
-        const { userId, feedbackId } = req.params;
+        const { userId } = req.params;
 
-        const result = await feedbackCollection.deleteOne({
-            _id: new ObjectId(feedbackId),
-            userId
-        });
+        const result = await feedbackCollection.deleteOne({ userId })
         res.status(200).json(result);
     } catch (error) {
         console.error("Error removing feedback:", error);
