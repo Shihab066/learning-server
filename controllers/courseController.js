@@ -482,7 +482,6 @@ export const getStudentCourses = async (req, res) => {
             },
             {
                 projection: {
-                    _id: 0,
                     courseName: 1,
                     courseThumbnail: 1,
                     instructorName: 1
@@ -494,6 +493,22 @@ export const getStudentCourses = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching course:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+}
+
+export const getCourseContents = async (req, res) => {
+    try {
+        const enrollmentCollection = await getEnrollmentCollection();
+        const courseCollection = await getCoursesCollection();
+
+        const { studentId, courseId } = req.params;
+
+        const courseContents = await courseCollection.findOne({ _id: new ObjectId(courseId) }, { projection: { courseContents: 1 } });
+
+        res.json(courseContents);
+    } catch (error) {
+        console.error("Error fetching course contents:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 }
