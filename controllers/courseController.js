@@ -495,7 +495,7 @@ export const getStudentCourses = async (req, res) => {
         console.error("Error fetching course:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
-}
+};
 
 export const getCourseContents = async (req, res) => {
     try {
@@ -504,11 +504,35 @@ export const getCourseContents = async (req, res) => {
 
         const { studentId, courseId } = req.params;
 
-        const courseContents = await courseCollection.findOne({ _id: new ObjectId(courseId) }, { projection: { courseContents: 1 } });
+        const contents = await courseCollection.findOne({ _id: new ObjectId(courseId) }, { projection: { courseName: 1, courseContents: 1 } });
+        const currentProgress = await enrollmentCollection.findOne({ courseId }, { projection: { totalLecturesWatched: 1 } })
 
-        res.json(courseContents);
+        res.json({ currentProgress, contents });
     } catch (error) {
         console.error("Error fetching course contents:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
-}
+};
+
+export const updateCourseProgress = async (req, res) => {
+    try {
+        const enrollmentCollection = await getEnrollmentCollection();
+        const { studentId, courseId } = req.params;
+        const { totalVideoWatched, currentProgress } = req.body;
+
+        const options = { upsert: true };
+        const updateDoc = {
+            $set: {
+                totalLecturesWatched: totalVideoWatched,
+                courseCompletePercent: currentProgress
+            }
+        };
+
+        const result = await enrollmentCollection.updateOne({ userId: studentId, courseId }, updateDoc, options);
+        res.json(result);
+
+    } catch (error) {
+        console.error("Error updating course progress:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};

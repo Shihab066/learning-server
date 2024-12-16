@@ -1,5 +1,5 @@
 import express from 'express';
-import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseDetails, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getStudentCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCoursePublishStatus } from '../controllers/courseController.js';
+import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseContents, getCourseDetails, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getStudentCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCourseProgress, updateCoursePublishStatus } from '../controllers/courseController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyAdmin, verifyInstructor } from '../controllers/authorizationController.js';
 
@@ -29,6 +29,9 @@ courseRouter.get('/instructorCourses/:instructorId', verifyToken, verifyInstruct
 // get student courses by studentId.
 courseRouter.get('/studentCourses/:studentId', getStudentCourses)
 
+// get student course contents by studentId and courseId.
+courseRouter.get('/content/:studentId/:courseId', getCourseContents);
+
 //add new course.
 courseRouter.post('/add', verifyToken, verifyInstructor, addNewCourse);
 
@@ -43,6 +46,9 @@ courseRouter.patch('/updatefeedback/:id', verifyToken, verifyAdmin, updateCourse
 
 //update course approved status by courseId.
 courseRouter.patch('/status/:id', verifyToken, verifyAdmin, updateCourseApprovedStatus);
+
+// update student course progress info by studentId and courseId
+courseRouter.patch('/update/progress/:studentId/:courseId', updateCourseProgress);
 
 //delete course by query, query contain courseId and instructorId.
 courseRouter.delete('/delete', verifyToken, verifyInstructor, deleteCourse);
