@@ -30,7 +30,7 @@ export const createCheckoutSession = async (req, res) => {
         const courses = products.map(product => (
             {
                 courseId: product.courseId,
-                courseName: product.name               
+                courseName: product.name
             }
         ));
 
@@ -108,7 +108,9 @@ export const retrieveCheckoutSession = async (req, res) => {
                 enrollmentDate: new Date(),
                 paymentId: paymentIntent.id,
                 status: 'active',
-                reviewed: false
+                reviewed: false,
+                totalLecturesWatched: 0,
+                courseCompletePercent: 0
             }));
 
             await enrollmentCollection.insertMany(enrollmentInfo, { ordered: true });
