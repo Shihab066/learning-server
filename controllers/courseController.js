@@ -469,30 +469,49 @@ export const deleteCourse = async (req, res) => {
 export const getStudentCourses = async (req, res) => {
     try {
         const enrollmentCollection = await getEnrollmentCollection();
-        const courseCollection = await getCoursesCollection();
 
         const { studentId } = req.params;
 
-        const enrollmentCourseId = await enrollmentCollection.find({ userId: studentId }, { projection: { _id: 0, courseId: 1 } }).toArray();
-        const courseIds = enrollmentCourseId.map(item => new ObjectId(item.courseId));
-
-        const enrollmentCourses = await courseCollection.find(
+        const enrollmentCourses = await enrollmentCollection.aggregate([
+            // Stage 1: Match enrollments for the given studentId
             {
-                _id: { $in: courseIds }
+                $match: { userId: studentId }
             },
+            // Stage 2: Convert courseId to ObjectId
             {
-                projection: {
-                    courseName: 1,
-                    courseThumbnail: 1,
-                    instructorName: 1
+                $addFields: {
+                    courseIdObj: { $toObjectId: "$courseId" }
+                }
+            },
+            // Stage 3: Lookup to join with the courseCollection
+            {
+                $lookup: {
+                    from: "classes",
+                    localField: "courseIdObj",
+                    foreignField: "_id",
+                    as: "courseDetails"
+                }
+            },
+            // Stage 4: Unwind courseDetails array (since lookup returns an array)
+            {
+                $unwind: "$courseDetails"
+            },
+            // Stage 5: Project desired fields (from both collections)
+            {
+                $project: {
+                    _id: 0,
+                    courseId: 1, // Original courseId
+                    courseCompletePercent: 1, // Enrollment progress
+                    courseName: "$courseDetails.courseName", // Course name from joined collection
+                    courseThumbnail: "$courseDetails.courseThumbnail",
+                    instructorName: "$courseDetails.instructorName"
                 }
             }
-        ).toArray();
+        ]).toArray();
 
-        res.json(enrollmentCourses)
-
+        res.json(enrollmentCourses);
     } catch (error) {
-        console.error("Error fetching course:", error);
+        console.error("Error fetching student courses:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
