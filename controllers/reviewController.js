@@ -25,7 +25,7 @@ export const getCourseRatings = async (req, res) => {
 
         const ratingPercentages = {};
         for (let rating in ratingCounts) {
-            ratingPercentages[rating] = (ratingCounts[rating] / totalRatings) * 100;
+            ratingPercentages[rating] = parseInt((ratingCounts[rating] / totalRatings) * 100);
         }
 
         res.status(200).json(ratingPercentages);

@@ -4,6 +4,9 @@ import { addReview, getCourseRatings, getCourseReviews, getInstructorReviews, ge
 const reviewRouter = express.Router();
 
 // get reviews my studentId
+reviewRouter.get('/ratings/:courseId', getCourseRatings);
+
+// get reviews my studentId
 reviewRouter.get('/my-reviews/:studentId', getMyReviews);
 
 // get pending reviews my studentId

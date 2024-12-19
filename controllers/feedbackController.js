@@ -9,7 +9,7 @@ export const getAllFeedback = async (req, res) => {
                 _id: 0,
                 name: 1,
                 profileImage: 1,
-                heading: 1,
+                headline: 1,
                 feedback: 1
             }
         };
