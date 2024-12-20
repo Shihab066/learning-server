@@ -67,3 +67,8 @@ export async function getFeedbackCollection() {
     const database = await connectToDatabase();
     return database.collection('feedback');
 };
+
+export async function getBannerCollection() {
+    const database = await connectToDatabase();
+    return database.collection('banner');
+};
