@@ -16,9 +16,9 @@ export const getAllBanner = async (req, res) => {
 export const addBanner = async (req, res) => {
     try {
         const bannerCollection = await getBannerCollection();
-        const bannerImage = req.body;
+        const bannerInfo = req.body;
 
-        const result = await bannerCollection.insertOne(bannerImage);
+        const result = await bannerCollection.insertOne(bannerInfo);
         res.status(201).json(result);
     } catch (error) {
         console.log('Error adding banner image:', error);
@@ -29,12 +29,11 @@ export const addBanner = async (req, res) => {
 export const updateBanner = async (req, res) => {
     try {
         const bannerCollection = await getBannerCollection();
-        const { _id: bannerId, bannerImage } = req.body;
+        const { bannerId } = req.params;
+        const upatedInfo = req.body;
 
         const updateDoc = {
-            $set: {
-                bannerImage
-            }
+            $set: upatedInfo
         }
         const result = await bannerCollection.updateOne({ _id: new ObjectId(bannerId) }, updateDoc);
         res.json(result);

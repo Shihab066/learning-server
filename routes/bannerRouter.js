@@ -11,7 +11,7 @@ bannerRouter.get('/get', getAllBanner);
 bannerRouter.post('/add', verifyToken, verifyAdmin, addBanner);
 
 // need admin verifcation
-bannerRouter.patch('/update',verifyToken, verifyAdmin, updateBanner);
+bannerRouter.patch('/update/:bannerId',verifyToken, verifyAdmin, updateBanner);
 
 // need admin verifcation
 bannerRouter.delete('/delete/:bannerId',verifyToken, verifyAdmin, deleteBanner);
