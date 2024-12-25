@@ -28,6 +28,6 @@ userRouter.patch('/update/:id', verifyToken, updateUserById);
 userRouter.patch('/updateInstructorProfile/:id', verifyToken, verifyInstructor, updateInstructorProfileById);
 
 //update user type/role.
-userRouter.patch('/users/:id', verifyToken, verifyAdmin, updateUserRoleById);
+userRouter.patch('/role/:id', verifyToken, verifyAdmin, updateUserRoleById);
 
 export default userRouter;
