@@ -72,3 +72,8 @@ export async function getBannerCollection() {
     const database = await connectToDatabase();
     return database.collection('banner');
 };
+
+export async function getSuspendedUsersCollection() {
+    const database = await connectToDatabase();
+    return database.collection('suspendedUsers');
+};
