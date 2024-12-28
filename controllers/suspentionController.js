@@ -1,6 +1,89 @@
 import { ObjectId } from "mongodb";
 import { getSuspendedUsersCollection, getUsersCollection } from "../collections.js";
 
+export const getSuspendedUsers = async (req, res) => {
+    try {
+        const suspendedUsersCollection = await getSuspendedUsersCollection();
+        const limit = parseInt(req.query.limit) || 10;
+        const searchValue = req.query.search || '';
+
+        const pipeline = [
+            // Lookup to get user details for user_id
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'user_id',
+                    foreignField: '_id',
+                    as: 'user_details',
+                },
+            },
+            // Unwind the user_details array
+            {
+                $unwind: {
+                    path: '$user_details',
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Lookup to get admin details for admin_id
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'admin_id',
+                    foreignField: '_id',
+                    as: 'admin_details',
+                },
+            },
+            // Unwind the admin_details array
+            {
+                $unwind: {
+                    path: '$admin_details',
+                    preserveNullAndEmptyArrays: true,
+                },
+            },
+            // Project the desired fields
+            {
+                $project: {
+                    _id: 0,
+                    suspend_id: 1,
+                    user_id: 1,
+                    user_name: '$user_details.name',
+                    user_email: '$user_details.email',
+                    admin_id: 1,
+                    admin_name: '$admin_details.name',
+                    admin_email: '$admin_details.email',
+                    suspension_reason: 1,
+                    suspension_date: 1,
+                    suspension_expiry: 1,
+                    suspention_details: 1
+                }
+            },
+            {
+                $limit: limit,
+            },
+        ];
+
+        if (searchValue) {
+            pipeline.push({
+                $match: {
+                    $or: [
+                        { name: { $regex: searchValue, $options: 'i' } },
+                        { email: { $regex: searchValue, $options: 'i' } }
+                    ]
+                }
+            })
+        }
+
+        // get all users from suspension collection
+        const suspendedUsers = await suspendedUsersCollection.aggregate(pipeline).toArray();
+
+        res.json(suspendedUsers);
+
+    } catch (error) {
+        console.error("Error adding suspension data:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
 export const addSuspensionData = async (req, res) => {
     try {
         const userCollection = await getUsersCollection();
