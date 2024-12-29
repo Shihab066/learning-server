@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import { getSuspendedUsersCollection, getUsersCollection } from "../collections.js";
 
 export const getSuspendedUsers = async (req, res) => {
@@ -47,14 +46,20 @@ export const getSuspendedUsers = async (req, res) => {
                     suspend_id: 1,
                     user_id: 1,
                     user_name: '$user_details.name',
+                    user_image: '$user_details.image',
                     user_email: '$user_details.email',
+                    user_role: '$user_details.role',
                     admin_id: 1,
                     admin_name: '$admin_details.name',
                     admin_email: '$admin_details.email',
                     suspension_reason: 1,
                     suspension_date: 1,
-                    suspension_expiry: 1,
-                    suspention_details: 1
+                    suspension_details: 1
+                }
+            },
+            {
+                $sort: {
+                    suspension_date: -1
                 }
             },
             {
@@ -66,20 +71,31 @@ export const getSuspendedUsers = async (req, res) => {
             pipeline.push({
                 $match: {
                     $or: [
-                        { name: { $regex: searchValue, $options: 'i' } },
-                        { email: { $regex: searchValue, $options: 'i' } }
+                        { user_name: { $regex: searchValue, $options: 'i' } },
+                        { user_email: { $regex: searchValue, $options: 'i' } },
+                        { admin_email: { $regex: searchValue, $options: 'i' } },
+                        { suspend_id: { $regex: searchValue, $options: 'i' } }
                     ]
                 }
             })
         }
 
+        const query = {
+            $or: [
+                { name: { $regex: searchValue, $options: 'i' } },
+                { email: { $regex: searchValue, $options: 'i' } },
+                { suspend_id: { $regex: searchValue, $options: 'i' } }
+            ]
+        }
+
         // get all users from suspension collection
+        const totalSuspendedUsers = await suspendedUsersCollection.countDocuments(query);
         const suspendedUsers = await suspendedUsersCollection.aggregate(pipeline).toArray();
 
-        res.json(suspendedUsers);
+        res.json({ totalSuspendedUsers, suspendedUsers });
 
     } catch (error) {
-        console.error("Error adding suspension data:", error);
+        console.error("Error fetching suspension data:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
@@ -98,7 +114,7 @@ export const addSuspensionData = async (req, res) => {
 
         // Update the user's suspended status
         await userCollection.updateOne(
-            { _id: new ObjectId(suspensionData.user_id) },
+            { _id: suspensionData.user_id },
             { $set: { suspended: true } },
             { upsert: true }
         );
@@ -110,6 +126,29 @@ export const addSuspensionData = async (req, res) => {
 
     } catch (error) {
         console.error("Error adding suspension data:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const removeSuspension = async (req, res) => {
+    try {
+        const userCollection = await getUsersCollection();
+        const suspendedUsersCollection = await getSuspendedUsersCollection();
+        const { userId, suspendId } = req.params;
+
+        const query = {
+            user_id: userId,
+            suspend_id: suspendId
+        };
+
+        // remove the user from suspension collection
+        await userCollection.updateOne({ _id: userId }, { $set: { suspended: false } });
+        const removeSuspensionResult = await suspendedUsersCollection.deleteOne(query);
+
+        res.json(removeSuspensionResult);
+
+    } catch (error) {
+        console.error("Error removing suspension:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
