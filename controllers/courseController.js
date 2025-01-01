@@ -195,8 +195,37 @@ export const getCourseDetails = async (req, res) => {
 export const getAllCourses = async (req, res) => {
     try {
         const coursesCollection = await getCoursesCollection();
-        const courses = await coursesCollection.find().toArray();
-        res.status(200).json(courses);
+        const limit = parseInt(req.query.limit) || 10;
+        const searchValue = req.query.search || '';
+
+        const query = {
+            $or: [
+                { courseName: { $regex: searchValue, $options: 'i' } },
+                { instructorName: { $regex: searchValue, $options: 'i' } },
+                { _instructorId: { $regex: searchValue, $options: 'i' } }
+            ]
+        };
+
+        if (searchValue && ObjectId.isValid(searchValue)) {
+            query.$or.push({
+                _id: new ObjectId(searchValue)
+            })
+        }
+
+        const option = {
+            projection: {
+                courseName: 1,
+                courseThumbnail: 1,
+                price: 1,
+                status: 1,
+                feedback: 1,
+                instructorName: 1,
+                created_at: 1
+            }
+        }
+        const totalCoursesCount = await coursesCollection.countDocuments(query);
+        const courses = await coursesCollection.find(query, option).limit(limit).sort({ created_at: -1 }).toArray();
+        res.status(200).json({ totalCoursesCount, courses });
     } catch (error) {
         console.error("Error fetching courses:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -318,7 +347,9 @@ export const addNewCourse = async (req, res) => {
             status: 'pending',
             feedback: '',
             rating: 0,
-            totalReviews: 0
+            totalReviews: 0,
+            created_at: new Date(),
+            isFeedbackRead: false
         };
 
         const result = await coursesCollection.insertOne(modifiedCourse);
@@ -403,7 +434,7 @@ export const updateCourseFeedback = async (req, res) => {
             return res.status(404).json({ message: "Class not found or no changes made." });
         }
 
-        res.status(200).json({ message: "Feedback updated successfully.", result });
+        res.status(200).json(result);
     } catch (error) {
         console.error("Error updating feedback:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -429,7 +460,7 @@ export const updateCourseApprovedStatus = async (req, res) => {
             return res.status(404).json({ message: "Class not found or no changes made." });
         }
 
-        res.status(200).json({ message: "Status updated successfully.", result });
+        res.status(200).json(result);
     } catch (error) {
         console.error("Error updating class status:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
