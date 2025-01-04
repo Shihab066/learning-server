@@ -426,9 +426,9 @@ export const updateCourseFeedback = async (req, res) => {
         }
 
         const filter = { _id: new ObjectId(id) };
-        const updateDoc = { $set: { feedback } };
+        const updateDoc = { $set: { feedback, isFeedbackRead: false } };
 
-        const result = await coursesCollection.updateOne(filter, updateDoc);
+        const result = await coursesCollection.updateOne(filter, updateDoc); 
 
         if (result.modifiedCount === 0) {
             return res.status(404).json({ message: "Class not found or no changes made." });
