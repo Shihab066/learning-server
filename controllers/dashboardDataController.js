@@ -5,47 +5,56 @@ export const getTotalSalesInfo = async (req, res) => {
         const paymentsCollection = await getPaymentsCollection();
         const result = await paymentsCollection.aggregate([
             {
-                $facet: {
-                    totalSales: [
-                        { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
-                        { $project: { totalAmount: { $toString: "$totalAmount" } } }
-                    ],
-                    thisYearSales: [
-                        {
-                            $match: {
-                                purchaseDate: {
-                                    $gte: new Date(new Date().getFullYear(), 0, 1),
-                                    $lt: new Date(new Date().getFullYear() + 1, 0, 1)
-                                }
-                            }
-                        },
-                        { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
-                        // { $project: { totalAmount: { $toString: "$totalAmount" } } }
-                    ],
-                    thisMonthSales: [
-                        {
-                            $match: {
-                                purchaseDate: {
-                                    $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-                                    $lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
-                                }
-                            }
-                        },
-                        { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
-                        { $project: { totalAmount: { $toString: "$totalAmount" } } }
-                    ]
-                }
+              $facet: {
+                totalSales: [
+                  { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+                  { $project: { totalAmount: { $toString: "$totalAmount" } } }
+                ],
+                thisYearSales: [
+                  {
+                    $match: {
+                      purchaseDate: {
+                        $gte: new Date(`${new Date().getFullYear()}-01-01T00:00:00.000Z`),
+                        $lt: new Date(`${new Date().getFullYear() + 1}-01-01T00:00:00.000Z`)
+                      }
+                    }
+                  },
+                  { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+                  { $project: { totalAmount: { $toString: "$totalAmount" } } }
+                ],
+                thisMonthSales: [
+                  {
+                    $match: {
+                      purchaseDate: {
+                        $gte: new Date(
+                          `${new Date().getFullYear()}-${String(
+                            new Date().getMonth() + 1
+                          ).padStart(2, "0")}-01T00:00:00.000Z`
+                        ),
+                        $lt: new Date(
+                          `${new Date().getFullYear()}-${String(
+                            new Date().getMonth() + 2
+                          ).padStart(2, "0")}-01T00:00:00.000Z`
+                        )
+                      }
+                    }
+                  },
+                  { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+                  { $project: { totalAmount: { $toString: "$totalAmount" } } }
+                ]
+              }
             },
             {
-                $project: {
-                    totalSalesAmount: { $arrayElemAt: ["$totalSales.totalAmount", 0] },
-                    thisYearSalesAmount: { $arrayElemAt: ["$thisYearSales.totalAmount", 0] },
-                    thisMonthSalesAmount: { $arrayElemAt: ["$thisMonthSales.totalAmount", 0] }
-                }
+              $project: {
+                totalSalesAmount: { $ifNull: [{ $arrayElemAt: ["$totalSales.totalAmount", 0] }, "0"] },
+                thisYearSalesAmount: { $ifNull: [{ $arrayElemAt: ["$thisYearSales.totalAmount", 0] }, "0"] },
+                thisMonthSalesAmount: { $ifNull: [{ $arrayElemAt: ["$thisMonthSales.totalAmount", 0] }, "0"] }
+              }
             }
-        ]).toArray()
+          ]).toArray()
+          
 
-        res.json(result);
+        res.json(result[0]);
 
     } catch (error) {
         console.error("Error fetching totalSalesInfo:", error);
