@@ -1,9 +1,12 @@
 import { getEnrollmentCollection, getPaymentsCollection } from "../collections.js";
 
-export const getTotalSalesInfo = async (req, res) => {
+export const getTotalSalesData = async (req, res) => {
     try {
         const paymentsCollection = await getPaymentsCollection();
-        const result = await paymentsCollection.aggregate([
+        const enrollmentCollection = await getEnrollmentCollection();
+
+        // Pipeline for total sales info
+        const totalSalesPipeline = [
             {
                 $facet: {
                     totalSales: [
@@ -51,21 +54,10 @@ export const getTotalSalesInfo = async (req, res) => {
                     thisMonthSalesAmount: { $ifNull: [{ $arrayElemAt: ["$thisMonthSales.totalAmount", 0] }, "0"] }
                 }
             }
-        ]).toArray()
+        ];
 
-        res.json(result[0]);
-
-    } catch (error) {
-        console.error("Error fetching totalSalesInfo:", error);
-        res.status(500).json({ message: "Internal server error", error: error.message });
-    }
-}
-
-export const getTotalSalesChartInfo = async (req, res) => {
-    try {
-        const enrollmentCollection = await getEnrollmentCollection();
-
-        const pipeLine = [
+        // Pipeline for total sales chart info
+        const totalSalesChartPipeline = [            
             {
                 $group: {
                     _id: {
@@ -115,13 +107,13 @@ export const getTotalSalesChartInfo = async (req, res) => {
                         }
                     }
                 }
-            },
+            },           
             {
                 $project: {
                     _id: 0,
                     year: { $toString: "$_id" },
                     yearlySales: { $toString: "$yearlySales" },
-                    monthlySales: { $map: { input: "$monthlySales", as: "s", in: { $toString: "$$s" } } }
+                    monthlySales: { $map: { input: "$monthlySales", as: "s", in: { $toString: "$$s" } } },                   
                 }
             },
             {
@@ -129,21 +121,8 @@ export const getTotalSalesChartInfo = async (req, res) => {
             }
         ];
 
-        const result = await enrollmentCollection.aggregate(pipeLine).toArray();
-
-        res.json(result);
-
-    } catch (error) {
-        console.error("Error fetching totalSalesChartInfo:", error);
-        res.status(500).json({ message: "Internal server error", error: error.message });
-    }
-}
-
-export const getTotalSalesAmountChartInfo = async (req, res) => {
-    try {
-        const paymentsCollection = await getPaymentsCollection();
-
-        const pipeLine = [
+        // Pipeline for total sales amount chart info
+        const totalSalesAmountChartPipeline = [           
             {
                 $group: {
                     _id: {
@@ -156,7 +135,7 @@ export const getTotalSalesAmountChartInfo = async (req, res) => {
             {
                 $group: {
                     _id: "$_id.year",
-                    yearlySalesAmount: { $sum: "$totalAmount" }, // Sum the total amount for the year
+                    yearlySalesAmount: { $sum: "$totalAmount" },
                     monthlySales: {
                         $push: {
                             month: "$_id.month",
@@ -169,7 +148,7 @@ export const getTotalSalesAmountChartInfo = async (req, res) => {
                 $addFields: {
                     monthlySalesAmount: {
                         $map: {
-                            input: { $range: [1, 13] }, // Generate months from 1 to 12
+                            input: { $range: [1, 13] },
                             as: "month",
                             in: {
                                 $let: {
@@ -199,21 +178,28 @@ export const getTotalSalesAmountChartInfo = async (req, res) => {
                     _id: 0,
                     year: { $toString: "$_id" },
                     yearlySalesAmount: { $toString: "$yearlySalesAmount" },
-                    monthlySalesAmount: 1
+                    monthlySalesAmount: 1,                    
                 }
             },
             {
-                $sort: { year: 1 } // Sort by year in ascending order
+                $sort: { year: 1 }
             }
         ];
 
-        const result = await paymentsCollection.aggregate(pipeLine).toArray();
+        const totalSalesData = await paymentsCollection.aggregate(totalSalesPipeline).toArray();
+        const totalSalesChartData = await enrollmentCollection.aggregate(totalSalesChartPipeline).toArray();
+        const totalSalesCount= await enrollmentCollection.countDocuments();
+        const totalSalesAmountChartData = await paymentsCollection.aggregate(totalSalesAmountChartPipeline).toArray();
 
-        res.json(result);
+        res.json({
+            totalSales: totalSalesData[0],
+            totalSalesCount: totalSalesCount,
+            totalSalesChartData: totalSalesChartData,
+            totalSalesAmountChartData: totalSalesAmountChartData
+        });
 
     } catch (error) {
-        console.error("Error fetching totalSalesAmountChartInfo:", error);
+        console.error("Error fetching sales data:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
-}
-
+};

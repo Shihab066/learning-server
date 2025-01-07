@@ -1,12 +1,8 @@
 import express from 'express';
-import { getTotalSalesAmountChartInfo, getTotalSalesChartInfo, getTotalSalesInfo } from '../controllers/dashboardDataController.js';
+import { getTotalSalesData } from '../controllers/dashboardDataController.js';
 
 const dashboardRouter = express.Router();
 
-dashboardRouter.get('/admin/getTotalSaleInfo', getTotalSalesInfo);
-
-dashboardRouter.get('/admin/getTotalSalesChartInfo', getTotalSalesChartInfo);
-
-dashboardRouter.get('/admin/getTotalSalesAmountChartInfo', getTotalSalesAmountChartInfo);
+dashboardRouter.get('/admin/getTotalSalesData', getTotalSalesData);
 
 export default dashboardRouter;
