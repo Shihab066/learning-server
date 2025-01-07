@@ -139,3 +139,81 @@ export const getTotalSalesChartInfo = async (req, res) => {
     }
 }
 
+export const getTotalSalesAmountChartInfo = async (req, res) => {
+    try {
+        const paymentsCollection = await getPaymentsCollection();
+
+        const pipeLine = [
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$purchaseDate" },
+                        month: { $month: "$purchaseDate" }
+                    },
+                    totalAmount: { $sum: "$amount" } // Sum the 'amount' for each month
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id.year",
+                    yearlySalesAmount: { $sum: "$totalAmount" }, // Sum the total amount for the year
+                    monthlySales: {
+                        $push: {
+                            month: "$_id.month",
+                            totalAmount: "$totalAmount"
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    monthlySalesAmount: {
+                        $map: {
+                            input: { $range: [1, 13] }, // Generate months from 1 to 12
+                            as: "month",
+                            in: {
+                                $let: {
+                                    vars: {
+                                        sale: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $filter: {
+                                                        input: "$monthlySales",
+                                                        as: "m",
+                                                        cond: { $eq: ["$$m.month", "$$month"] }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    },
+                                    in: { $toString: { $ifNull: ["$$sale.totalAmount", 0] } }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    year: { $toString: "$_id" },
+                    yearlySalesAmount: { $toString: "$yearlySalesAmount" },
+                    monthlySalesAmount: 1
+                }
+            },
+            {
+                $sort: { year: 1 } // Sort by year in ascending order
+            }
+        ];
+
+        const result = await paymentsCollection.aggregate(pipeLine).toArray();
+
+        res.json(result);
+
+    } catch (error) {
+        console.error("Error fetching totalSalesAmountChartInfo:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+}
+
