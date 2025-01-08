@@ -57,24 +57,32 @@ export const getTotalSalesData = async (req, res) => {
         ];
 
         // Pipeline for total sales chart info
-        const totalSalesChartPipeline = [            
+        const totalSalesChartPipeline = [
+            {
+                $match: { status: "succeeded" }
+            },
+            {
+                $addFields: {
+                    salesCount: { $size: "$courses" } // Calculate the sales count as the length of the 'course' array
+                }
+            },
             {
                 $group: {
                     _id: {
-                        year: { $year: "$enrollmentDate" },
-                        month: { $month: "$enrollmentDate" }
+                        year: { $year: "$purchaseDate" },
+                        month: { $month: "$purchaseDate" }
                     },
-                    totalUnits: { $sum: 1 } // Count each document as a unit sale
+                    totalSales: { $sum: "$salesCount" } // Sum the sales count for each month
                 }
             },
             {
                 $group: {
                     _id: "$_id.year",
-                    yearlySales: { $sum: "$totalUnits" },
+                    yearlySales: { $sum: "$totalSales" },
                     monthlySales: {
                         $push: {
                             month: "$_id.month",
-                            totalUnits: "$totalUnits"
+                            totalSales: "$totalSales"
                         }
                     }
                 }
@@ -83,7 +91,7 @@ export const getTotalSalesData = async (req, res) => {
                 $addFields: {
                     monthlySales: {
                         $map: {
-                            input: { $range: [1, 13] }, // Generate months from 1 to 12
+                            input: { $range: [1, 13] },
                             as: "month",
                             in: {
                                 $let: {
@@ -101,19 +109,19 @@ export const getTotalSalesData = async (req, res) => {
                                             ]
                                         }
                                     },
-                                    in: { $ifNull: ["$$sale.totalUnits", "0"] }
+                                    in: { $toString: { $ifNull: ["$$sale.totalSales", 0] } }
                                 }
                             }
                         }
                     }
                 }
-            },           
+            },
             {
                 $project: {
                     _id: 0,
                     year: { $toString: "$_id" },
                     yearlySales: { $toString: "$yearlySales" },
-                    monthlySales: { $map: { input: "$monthlySales", as: "s", in: { $toString: "$$s" } } },                   
+                    monthlySales: 1
                 }
             },
             {
@@ -122,7 +130,10 @@ export const getTotalSalesData = async (req, res) => {
         ];
 
         // Pipeline for total sales amount chart info
-        const totalSalesAmountChartPipeline = [           
+        const totalSalesAmountChartPipeline = [
+            {
+                $match: { status: "succeeded" }
+            },
             {
                 $group: {
                     _id: {
@@ -178,7 +189,7 @@ export const getTotalSalesData = async (req, res) => {
                     _id: 0,
                     year: { $toString: "$_id" },
                     yearlySalesAmount: { $toString: "$yearlySalesAmount" },
-                    monthlySalesAmount: 1,                    
+                    monthlySalesAmount: 1,
                 }
             },
             {
@@ -187,13 +198,13 @@ export const getTotalSalesData = async (req, res) => {
         ];
 
         const totalSalesData = await paymentsCollection.aggregate(totalSalesPipeline).toArray();
-        const totalSalesChartData = await enrollmentCollection.aggregate(totalSalesChartPipeline).toArray();
-        const totalSalesCount= await enrollmentCollection.countDocuments();
+        const totalSalesChartData = await paymentsCollection.aggregate(totalSalesChartPipeline).toArray();
+        const totalSalesCount = await enrollmentCollection.countDocuments();
         const totalSalesAmountChartData = await paymentsCollection.aggregate(totalSalesAmountChartPipeline).toArray();
 
         res.json({
             totalSales: totalSalesData[0],
-            totalSalesCount: totalSalesCount,
+            totalSalesCount: totalSalesCount.toString(),
             totalSalesChartData: totalSalesChartData,
             totalSalesAmountChartData: totalSalesAmountChartData
         });
