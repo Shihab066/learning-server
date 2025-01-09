@@ -30,7 +30,8 @@ export const createCheckoutSession = async (req, res) => {
         const courses = products.map(product => (
             {
                 courseId: product.courseId,
-                courseName: product.name
+                courseName: product.name,
+                price: parseInt(product.price * 100)
             }
         ));
 
@@ -43,7 +44,7 @@ export const createCheckoutSession = async (req, res) => {
             line_items: lineItems,
             mode: 'payment',
             success_url: `http://localhost:5173/paymentSuccess/${token}/{CHECKOUT_SESSION_ID}`,
-            cancel_url: `http://localhost:5173/cart?cancel={CHECKOUT_SESSION_ID}`,
+            cancel_url: `http://localhost:5173/cart?cancel=${token}&session={CHECKOUT_SESSION_ID}`,
             expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
             metadata: {
                 user_id: userId,
@@ -102,11 +103,12 @@ export const retrieveCheckoutSession = async (req, res) => {
             await paymentCollection.insertOne(paymentInfo);
 
             // Insert enrollment info to the database
-            const enrollmentInfo = courseIds.map(courseId => ({
+            const enrollmentInfo = courses.map(({courseId, price}) => ({
                 userId: session.metadata.user_id,
                 courseId,
                 enrollmentDate: new Date(),
                 paymentId: paymentIntent.id,
+                price,
                 status: 'active',
                 reviewed: false,
                 totalLecturesWatched: 0,
@@ -138,8 +140,10 @@ export const retrieveCheckoutSession = async (req, res) => {
 
 // Expire checkout session by session ID
 export const expireSession = async (req, res) => {
+    const temporaryTokenCollection = await getTemporaryTokensCollection();
     try {
-        const { sessionId } = req.body;
+        const { sessionId, token } = req.body;
+        await temporaryTokenCollection.deleteOne({ token });
         await stripe.checkout.sessions.expire(sessionId)
 
         res.status(200);
