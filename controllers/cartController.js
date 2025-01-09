@@ -31,7 +31,7 @@ export const getCartCourses = async (req, res) => {
         const courseIds = cartItems.map(item => new ObjectId(item.courseId));
 
         // Find all courses with courseIds from the wishlist
-        const courseCollection = await getCoursesCollection();     
+        const courseCollection = await getCoursesCollection();
         const courses = await courseCollection.aggregate([
             {
                 $match: { _id: { $in: courseIds } }
@@ -57,6 +57,7 @@ export const getCartCourses = async (req, res) => {
             },
             {
                 $project: {
+                    _instructorId: 1,
                     instructorName: 1,
                     courseName: 1,
                     courseThumbnail: 1,
