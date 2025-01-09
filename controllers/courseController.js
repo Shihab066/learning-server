@@ -62,6 +62,7 @@ export const getAllApprovedCourses = async (req, res) => {
         const query = { courseName: { $regex: searchValue, $options: 'i' } };
         const options = {
             projection: {
+                _instructorId: 1,
                 instructorName: 1,
                 courseName: 1,
                 courseThumbnail: 1,
