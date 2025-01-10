@@ -214,3 +214,223 @@ export const getTotalSalesData = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+export const getInstructorTotalSalesData = async (req, res) => {
+    try {
+        const paymentsCollection = await getPaymentsCollection();
+        const enrollmentCollection = await getEnrollmentCollection();
+
+        const { instructorId } = req.params;
+
+        // Pipeline for total sales info
+        const totalSalesPipeline = [
+            {
+                $match: { _instructorId: instructorId }
+            },
+            {
+                $facet: {
+                    totalSales: [
+                        { $group: { _id: null, totalAmount: { $sum: "$price" } } },
+                        { $project: { totalAmount: { $toString: "$totalAmount" } } }
+                    ],
+                    thisYearSales: [
+                        {
+                            $match: {
+                                enrollmentDate: {
+                                    $gte: new Date(`${new Date().getFullYear()}-01-01T00:00:00.000Z`),
+                                    $lt: new Date(`${new Date().getFullYear() + 1}-01-01T00:00:00.000Z`)
+                                }
+                            }
+                        },
+                        { $group: { _id: null, totalAmount: { $sum: "$price" } } },
+                        { $project: { totalAmount: { $toString: "$totalAmount" } } }
+                    ],
+                    thisMonthSales: [
+                        {
+                            $match: {
+                                enrollmentDate: {
+                                    $gte: new Date(
+                                        `${new Date().getFullYear()}-${String(
+                                            new Date().getMonth() + 1
+                                        ).padStart(2, "0")}-01T00:00:00.000Z`
+                                    ),
+                                    $lt: new Date(
+                                        `${new Date().getFullYear()}-${String(
+                                            new Date().getMonth() + 2
+                                        ).padStart(2, "0")}-01T00:00:00.000Z`
+                                    )
+                                }
+                            }
+                        },
+                        { $group: { _id: null, totalAmount: { $sum: "$price" } } },
+                        { $project: { totalAmount: { $toString: "$totalAmount" } } }
+                    ]
+                }
+            },
+            {
+                $project: {
+                    totalSalesAmount: { $ifNull: [{ $arrayElemAt: ["$totalSales.totalAmount", 0] }, "0"] },
+                    thisYearSalesAmount: { $ifNull: [{ $arrayElemAt: ["$thisYearSales.totalAmount", 0] }, "0"] },
+                    thisMonthSalesAmount: { $ifNull: [{ $arrayElemAt: ["$thisMonthSales.totalAmount", 0] }, "0"] }
+                }
+            }
+        ];
+
+        // Pipeline for total sales chart info
+        const totalSalesChartPipeline = [
+            {
+                $match: { _instructorId: instructorId }
+            },
+            {
+                $addFields: {
+                    salesCount: 1 // Calculate the sales count as the length of the 'course' array
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$enrollmentDate" },
+                        month: { $month: "$enrollmentDate" }
+                    },
+                    totalSales: { $sum: "$salesCount" } // Sum the sales count for each month
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id.year",
+                    yearlySales: { $sum: "$totalSales" },
+                    monthlySales: {
+                        $push: {
+                            month: "$_id.month",
+                            totalSales: "$totalSales"
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    monthlySales: {
+                        $map: {
+                            input: { $range: [1, 13] },
+                            as: "month",
+                            in: {
+                                $let: {
+                                    vars: {
+                                        sale: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $filter: {
+                                                        input: "$monthlySales",
+                                                        as: "m",
+                                                        cond: { $eq: ["$$m.month", "$$month"] }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    },
+                                    in: { $toString: { $ifNull: ["$$sale.totalSales", 0] } }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    year: { $toString: "$_id" },
+                    yearlySales: { $toString: "$yearlySales" },
+                    monthlySales: 1
+                }
+            },
+            {
+                $sort: { year: 1 }
+            }
+        ];
+
+        // Pipeline for total sales amount chart info
+        const totalSalesAmountChartPipeline = [
+            {
+                $match: { _instructorId: instructorId }
+            },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: "$enrollmentDate" },
+                        month: { $month: "$enrollmentDate" }
+                    },
+                    totalAmount: { $sum: "$price" } // Sum the 'amount' for each month
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id.year",
+                    yearlySalesAmount: { $sum: "$totalAmount" },
+                    monthlySales: {
+                        $push: {
+                            month: "$_id.month",
+                            totalAmount: "$totalAmount"
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    monthlySalesAmount: {
+                        $map: {
+                            input: { $range: [1, 13] },
+                            as: "month",
+                            in: {
+                                $let: {
+                                    vars: {
+                                        sale: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $filter: {
+                                                        input: "$monthlySales",
+                                                        as: "m",
+                                                        cond: { $eq: ["$$m.month", "$$month"] }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    },
+                                    in: { $toString: { $ifNull: ["$$sale.totalAmount", 0] } }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    year: { $toString: "$_id" },
+                    yearlySalesAmount: { $toString: "$yearlySalesAmount" },
+                    monthlySalesAmount: 1,
+                }
+            },
+            {
+                $sort: { year: 1 }
+            }
+        ];
+
+        const totalSalesData = await enrollmentCollection.aggregate(totalSalesPipeline).toArray();
+        const totalSalesChartData = await enrollmentCollection.aggregate(totalSalesChartPipeline).toArray();
+        const totalSalesCount = await enrollmentCollection.countDocuments({_instructorId: instructorId});
+        const totalSalesAmountChartData = await enrollmentCollection.aggregate(totalSalesAmountChartPipeline).toArray();
+
+        res.json({
+            totalSales: totalSalesData[0],
+            totalSalesCount: totalSalesCount.toString(),
+            totalSalesChartData: totalSalesChartData,
+            totalSalesAmountChartData: totalSalesAmountChartData
+        });
+
+    } catch (error) {
+        console.error("Error fetching sales data:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};

@@ -1,8 +1,11 @@
 import express from 'express';
-import { getTotalSalesData } from '../controllers/dashboardDataController.js';
+import { getInstructorTotalSalesData, getTotalSalesData } from '../controllers/dashboardDataController.js';
 
 const dashboardRouter = express.Router();
 
 dashboardRouter.get('/admin/getTotalSalesData', getTotalSalesData);
+
+// need authenticate + authorization
+dashboardRouter.get('/instructor/getTotalSalesData/:instructorId', getInstructorTotalSalesData);
 
 export default dashboardRouter;
