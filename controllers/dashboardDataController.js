@@ -417,17 +417,22 @@ export const getInstructorTotalSalesData = async (req, res) => {
             }
         ];
 
-        const totalSalesData = await enrollmentCollection.aggregate(totalSalesPipeline).toArray();
-        const totalSalesChartData = await enrollmentCollection.aggregate(totalSalesChartPipeline).toArray();
-        const totalSalesCount = await enrollmentCollection.countDocuments({_instructorId: instructorId});
-        const totalSalesAmountChartData = await enrollmentCollection.aggregate(totalSalesAmountChartPipeline).toArray();
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
 
-        res.json({
-            totalSales: totalSalesData[0],
-            totalSalesCount: totalSalesCount.toString(),
-            totalSalesChartData: totalSalesChartData,
-            totalSalesAmountChartData: totalSalesAmountChartData
-        });
+        if (authorizeStatus === 200) {
+            const totalSalesData = await enrollmentCollection.aggregate(totalSalesPipeline).toArray();
+            const totalSalesChartData = await enrollmentCollection.aggregate(totalSalesChartPipeline).toArray();
+            const totalSalesCount = await enrollmentCollection.countDocuments({ _instructorId: instructorId });
+            const totalSalesAmountChartData = await enrollmentCollection.aggregate(totalSalesAmountChartPipeline).toArray();
+
+            res.json({
+                totalSales: totalSalesData[0],
+                totalSalesCount: totalSalesCount.toString(),
+                totalSalesChartData: totalSalesChartData,
+                totalSalesAmountChartData: totalSalesAmountChartData
+            });
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
 
     } catch (error) {
         console.error("Error fetching sales data:", error);
