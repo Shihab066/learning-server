@@ -1,5 +1,5 @@
 import express from 'express';
-import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseContents, getCourseDetails, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getStudentCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCourseProgress, updateCoursePublishStatus } from '../controllers/courseController.js';
+import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseContents, getCourseDetails, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getStudentCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCourseFeedbackReadStatus, updateCourseProgress, updateCoursePublishStatus } from '../controllers/courseController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyAdmin, verifyInstructor } from '../controllers/authorizationController.js';
 
@@ -43,6 +43,9 @@ courseRouter.patch('/updatePublishStatus', verifyToken, verifyInstructor, update
 
 //update course feedback by courseId.
 courseRouter.patch('/updatefeedback/:id', verifyToken, verifyAdmin, updateCourseFeedback);
+
+//update course feedback read status by courseId.
+courseRouter.patch('/updateFeedbackReadStatus/:id', verifyToken, verifyInstructor, updateCourseFeedbackReadStatus);
 
 //update course approved status by courseId.
 courseRouter.patch('/status/:id', verifyToken, verifyAdmin, updateCourseApprovedStatus);

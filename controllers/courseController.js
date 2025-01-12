@@ -323,7 +323,8 @@ export const getInstructorCourses = async (req, res) => {
                     feedback: 1,
                     publish: 1,
                     rating: 1,
-                    totalReviews: 1
+                    totalReviews: 1,
+                    isFeedbackRead: 1
                 }
             };
 
@@ -416,6 +417,31 @@ export const updateCoursePublishStatus = async (req, res) => {
     }
 };
 
+export const updateCourseFeedbackReadStatus = async (req, res) => {
+    try {
+        const coursesCollection = await getCoursesCollection();
+        const id = req.params.id;
+        const { readStatus } = req.body;
+
+        if (!readStatus) {
+            return res.status(400).json({ message: "Read status not found." });
+        }
+
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = { $set: { isFeedbackRead: readStatus} };
+
+        const result = await coursesCollection.updateOne(filter, updateDoc);
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).json({ message: "Class not found or no changes made." });
+        }
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error("Error updating feedback read status:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
 export const updateCourseFeedback = async (req, res) => {
     try {
         const coursesCollection = await getCoursesCollection();
@@ -429,7 +455,7 @@ export const updateCourseFeedback = async (req, res) => {
         const filter = { _id: new ObjectId(id) };
         const updateDoc = { $set: { feedback, isFeedbackRead: false } };
 
-        const result = await coursesCollection.updateOne(filter, updateDoc); 
+        const result = await coursesCollection.updateOne(filter, updateDoc);
 
         if (result.modifiedCount === 0) {
             return res.status(404).json({ message: "Class not found or no changes made." });

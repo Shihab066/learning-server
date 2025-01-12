@@ -1,4 +1,5 @@
 import { getEnrollmentCollection, getPaymentsCollection } from "../collections.js";
+import { authorizeInstructor } from "./authorizationController.js";
 
 export const getTotalSalesData = async (req, res) => {
     try {
@@ -217,7 +218,6 @@ export const getTotalSalesData = async (req, res) => {
 
 export const getInstructorTotalSalesData = async (req, res) => {
     try {
-        const paymentsCollection = await getPaymentsCollection();
         const enrollmentCollection = await getEnrollmentCollection();
 
         const { instructorId } = req.params;
