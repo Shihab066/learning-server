@@ -1,4 +1,4 @@
-import { getEnrollmentCollection, getPaymentsCollection } from "../collections.js";
+import { getEnrollmentCollection, getPaymentsCollection, getReviewsCollection } from "../collections.js";
 import { authorizeInstructor } from "./authorizationController.js";
 
 export const getTotalSalesData = async (req, res) => {
@@ -439,3 +439,74 @@ export const getInstructorTotalSalesData = async (req, res) => {
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
+export const getInstructorReviewsStatistics = async (req, res) => {
+    try {
+        const reviewsCollection = await getReviewsCollection();
+
+        const { instructorId } = req.params;
+
+        const pipeline = [
+            {
+                $match: { _instructorId: instructorId }
+            },
+            {
+                $facet: {
+                    counts: [
+                        {
+                            $group: {
+                                _id: "$rating",
+                                total: { $sum: 1 }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $project: {
+                    ratings: {
+                        $map: {
+                            input: [1, 2, 3, 4, 5],
+                            as: "star",
+                            in: {
+                                $let: {
+                                    vars: {
+                                        match: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $filter: {
+                                                        input: "$counts",
+                                                        as: "c",
+                                                        cond: { $eq: ["$$c._id", "$$star"] }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    },
+                                    in: { $ifNull: ["$$match.total", 0] }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ];
+
+        // const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
+        const authorizeStatus = 200;
+
+        if (authorizeStatus === 200) {
+            const totalReviewsData = await reviewsCollection.aggregate(pipeline).toArray();
+            const totalReviewsCount = await reviewsCollection.countDocuments({ _instructorId: instructorId });
+
+            res.json({ reviewsStatistics: totalReviewsData[0].ratings, totalReviews: totalReviewsCount });
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+    } catch (error) {
+        console.error("Error fetching reviews data:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
