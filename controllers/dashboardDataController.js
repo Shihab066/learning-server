@@ -560,5 +560,5 @@ export const getInstructorCoursesStatistics = async (req, res) => {
         console.error("Error fetching reviews data:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
-};
+}; 
 
