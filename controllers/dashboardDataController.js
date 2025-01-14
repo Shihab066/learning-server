@@ -1,4 +1,4 @@
-import { getEnrollmentCollection, getPaymentsCollection, getReviewsCollection } from "../collections.js";
+import { getCoursesCollection, getEnrollmentCollection, getPaymentsCollection, getReviewsCollection } from "../collections.js";
 import { authorizeInstructor } from "./authorizationController.js";
 
 export const getTotalSalesData = async (req, res) => {
@@ -493,14 +493,66 @@ export const getInstructorReviewsStatistics = async (req, res) => {
             }
         ];
 
-        // const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
-        const authorizeStatus = 200;
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
 
         if (authorizeStatus === 200) {
             const totalReviewsData = await reviewsCollection.aggregate(pipeline).toArray();
             const totalReviewsCount = await reviewsCollection.countDocuments({ _instructorId: instructorId });
 
             res.json({ reviewsStatistics: totalReviewsData[0].ratings, totalReviews: totalReviewsCount });
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+    } catch (error) {
+        console.error("Error fetching reviews data:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const getInstructorCoursesStatistics = async (req, res) => {
+    try {
+        const coursesCollection = await getCoursesCollection();
+
+        const { instructorId } = req.params;
+
+        const pipeline = [
+            // Step 1: Filter courses by instructor ID
+            {
+                $match: { _instructorId: instructorId } // Replace <instructorId> with actual ID
+            },
+            // Step 2: Lookup total times added to the cart for each course
+            {
+                $lookup: {
+                    from: "cart",
+                    let: { courseId: "$_id" },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$courseId", { $toString: "$$courseId" }] } } }
+                    ],
+                    as: "cartItems"
+                }
+            },
+            // Step 3: Project and calculate required fields
+            {
+                $project: {
+                    _id: 0,
+                    courseName: 1,
+                    price: 1,
+                    discount: 1,
+                    totalModules: 1,
+                    students: 1,
+                    courseCompleted: 1,
+                    totalReviews: 1,
+                    onShelf: { $size: "$cartItems" }
+                }
+            }
+        ];
+
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);      
+
+        if (authorizeStatus === 200) {
+            const cousesStatistics = await coursesCollection.aggregate(pipeline).toArray();
+
+            res.json(cousesStatistics);
         }
         else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
 
