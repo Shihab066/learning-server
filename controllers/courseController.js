@@ -71,7 +71,8 @@ export const getAllApprovedCourses = async (req, res) => {
                 totalReviews: 1,
                 totalModules: 1,
                 price: 1,
-                discount: 1
+                discount: 1,
+                courseDuration: 1
             }
         }
         const cursor = coursesCollection.find(query, options)
@@ -113,7 +114,8 @@ export const getCourseDetails = async (req, res) => {
                 rating: 1,
                 totalReviews: 1,
                 courseContents: 1,
-                totalModules: 1
+                totalModules: 1,
+                courseDuration: 1
             }
         };
 
