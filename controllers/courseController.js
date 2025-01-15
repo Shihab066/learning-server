@@ -150,12 +150,24 @@ export const getCourseDetails = async (req, res) => {
         // Fetch total review count for the instructor
         const totalReviewsCount = await reviewsCollection.countDocuments({ _instructorId: instructorId });
 
+        // Calculate total duration of a module
+        const calculateModuleDuration = (moduleItems) =>
+            moduleItems.reduce((acc, curr) => acc + (curr?.duration || 0), 0);
+
+        // Total milestone duration in seconds and formatted to hours
+        const milestoneDurationInSec = (milestoneModules) => 
+            milestoneModules.reduce(
+                (acc, curr) => acc + calculateModuleDuration(curr.moduleItems),
+                0
+            );
+    
         // Helper function to format course contents
         const formatCourseContents = (contents) => {
             return contents?.map(({ milestoneName, milestoneDetails, milestoneModules }) => ({
                 milestoneName,
                 milestoneDetails,
-                totalModules: milestoneModules?.length || 0
+                totalModules: milestoneModules?.length || 0,
+                duration: milestoneDurationInSec(milestoneModules)
             }));
         };
 
@@ -430,7 +442,7 @@ export const updateCourseFeedbackReadStatus = async (req, res) => {
         }
 
         const filter = { _id: new ObjectId(id) };
-        const updateDoc = { $set: { isFeedbackRead: readStatus} };
+        const updateDoc = { $set: { isFeedbackRead: readStatus } };
 
         const result = await coursesCollection.updateOne(filter, updateDoc);
 
