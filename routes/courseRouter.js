@@ -1,5 +1,5 @@
 import express from 'express';
-import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseContents, getCourseDetails, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getStudentCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCourseFeedbackReadStatus, updateCourseProgress, updateCoursePublishStatus } from '../controllers/courseController.js';
+import { addNewCourse, deleteCourse, getAllApprovedCourses, getAllCourses, getCourseContents, getCourseDetails, getEnrolledCoursesId, getInstructorCourse, getInstructorCourses, getMoreCourseByInstructor, getStudentCourses, getTopCourses, updateCourseApprovedStatus, updateCourseById, updateCourseFeedback, updateCourseFeedbackReadStatus, updateCourseProgress, updateCoursePublishStatus } from '../controllers/courseController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyAdmin, verifyInstructor } from '../controllers/authorizationController.js';
 
@@ -31,6 +31,9 @@ courseRouter.get('/studentCourses/:studentId', getStudentCourses)
 
 // get student course contents by studentId and courseId.
 courseRouter.get('/content/:studentId/:courseId', getCourseContents);
+
+// get student enrolled courses id by studentId.
+courseRouter.get('/enrolledCoursesId/:studentId', verifyToken, getEnrolledCoursesId);
 
 //add new course.
 courseRouter.post('/add', verifyToken, verifyInstructor, addNewCourse);

@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 // import { coursesCollection, reviewsCollection, usersCollection } from "../collections.js";
-import { authorizeInstructor } from "./authorizationController.js";
+import { authorizeInstructor, authorizeUser } from "./authorizationController.js";
 import { getCoursesCollection, getEnrollmentCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
 
 export const getTopCourses = async (req, res) => {
@@ -155,12 +155,12 @@ export const getCourseDetails = async (req, res) => {
             moduleItems.reduce((acc, curr) => acc + (curr?.duration || 0), 0);
 
         // Total milestone duration in seconds and formatted to hours
-        const milestoneDurationInSec = (milestoneModules) => 
+        const milestoneDurationInSec = (milestoneModules) =>
             milestoneModules.reduce(
                 (acc, curr) => acc + calculateModuleDuration(curr.moduleItems),
                 0
             );
-    
+
         // Helper function to format course contents
         const formatCourseContents = (contents) => {
             return contents?.map(({ milestoneName, milestoneDetails, milestoneModules }) => ({
@@ -624,6 +624,27 @@ export const updateCourseProgress = async (req, res) => {
 
     } catch (error) {
         console.error("Error updating course progress:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const getEnrolledCoursesId = async (req, res) => {
+    try {
+        const enrollmentCollection = await getEnrollmentCollection();
+
+        const { studentId } = req.params;
+
+        const authorizeStatus = await authorizeUser(studentId, req.decoded.email);
+
+        if (authorizeStatus === 200) {
+            const enrollmentCourses = await enrollmentCollection.find({ userId: studentId }, { projection: { _id: 0, courseId: 1 } }).toArray();
+
+            res.json(enrollmentCourses);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+    } catch (error) {
+        console.error("Error fetching enrolled courses id:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
