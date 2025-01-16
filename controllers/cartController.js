@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { getCartCollection, getCoursesCollection } from "../collections.js";
+import { getCartCollection, getCoursesCollection, getEnrollmentCollection } from "../collections.js";
 
 export const getCartItems = async (req, res) => {
     try {
@@ -84,6 +84,7 @@ export const getCartCourses = async (req, res) => {
 export const addCourseToCart = async (req, res) => {
     try {
         const cartCollection = await getCartCollection();
+        const enrollmentCollection = await getEnrollmentCollection();
         const cartItem = req.body;
         const modifiedCartItem = {
             ...cartItem,
@@ -93,6 +94,11 @@ export const addCourseToCart = async (req, res) => {
         const existingItem = await cartCollection.findOne(cartItem);
         if (existingItem) {
             return res.status(409).json({ error: true, message: 'Course already added to cart.' });
+        }
+
+        const isEnrolled = await enrollmentCollection.findOne({ userId: cartItem.userId, courseId: cartItem.courseId });
+        if (isEnrolled) {
+            return res.status(409).json({ error: true, message: 'Course already enrolled.' });
         }
 
         const result = await cartCollection.insertOne(modifiedCartItem);
