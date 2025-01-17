@@ -572,11 +572,12 @@ export const getStudentCourses = async (req, res) => {
             {
                 $project: {
                     _id: 0,
-                    courseId: 1, // Original courseId
-                    courseCompletePercent: 1, // Enrollment progress
+                    courseId: 1, // Original courseId                   
+                    totalLecturesWatched: 1,
                     courseName: "$courseDetails.courseName", // Course name from joined collection
                     courseThumbnail: "$courseDetails.courseThumbnail",
-                    instructorName: "$courseDetails.instructorName"
+                    instructorName: "$courseDetails.instructorName",
+                    totalVideos: "$courseDetails.totalVideos"
                 }
             }
         ]).toArray();
@@ -609,13 +610,12 @@ export const updateCourseProgress = async (req, res) => {
     try {
         const enrollmentCollection = await getEnrollmentCollection();
         const { studentId, courseId } = req.params;
-        const { totalVideoWatched, currentProgress } = req.body;
+        const { totalVideoWatched } = req.body;
 
         const options = { upsert: true };
         const updateDoc = {
             $set: {
-                totalLecturesWatched: totalVideoWatched,
-                courseCompletePercent: currentProgress
+                totalLecturesWatched: totalVideoWatched,                
             }
         };
 

@@ -113,9 +113,8 @@ export const retrieveCheckoutSession = async (req, res) => {
                 price,
                 status: 'active',
                 reviewed: false,
-                complete: false,
-                totalLecturesWatched: 0,
-                courseCompletePercent: 0
+                complete: false,                
+                totalLecturesWatched: 0
             }));
 
             await enrollmentCollection.insertMany(enrollmentInfo, { ordered: true });
