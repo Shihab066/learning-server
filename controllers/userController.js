@@ -25,7 +25,7 @@ export const getUsers = async (req, res) => {
         const { adminId } = req.params;
         const limit = parseInt(req.query.limit) || 10;
         const searchValue = req.query.search || '';
-        const query = {            
+        const query = {
             $or: [
                 { name: { $regex: searchValue, $options: 'i' } },
                 { email: { $regex: searchValue, $options: 'i' } }
@@ -38,7 +38,7 @@ export const getUsers = async (req, res) => {
             if (users.length === 0) {
                 return res.status(404).json({ message: "No users found" });
             }
-            res.status(200).json({totalUsers, users});
+            res.status(200).json({ totalUsers, users });
         }
         else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
@@ -182,6 +182,27 @@ export const updateUserRoleById = async (req, res) => {
             }
 
             res.status(200).json(result);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+    } catch (error) {
+        console.error("Error updating user role:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const getSuspendedStatus = async (req, res) => {
+    try {
+        const usersCollection = await getUsersCollection();
+        const id = req.params.id;
+        const authorizeStatus = await authorizeAdmin(id, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const user = await usersCollection.findOne({ _id: id }, { projection: { suspended: 1 } });
+
+            if (!user) {
+                return res.status(404).json({ message: "User not found" });
+            }
+
+            res.status(200).json(user);
         }
         else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
