@@ -19,7 +19,7 @@ userRouter.get('/getSignupMethod/:id', getSignupMethodById);
 userRouter.get('/role/:id', getUserRoleById);
 
 //get user suspended status by userId.
-userRouter.get('/suspendedStatus/:id', getSuspendedStatus);
+userRouter.get('/suspendedStatus/:id', verifyToken, getSuspendedStatus);
 
 //add user
 userRouter.post('/add', addUser);

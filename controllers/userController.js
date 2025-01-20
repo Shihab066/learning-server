@@ -194,9 +194,9 @@ export const getSuspendedStatus = async (req, res) => {
     try {
         const usersCollection = await getUsersCollection();
         const id = req.params.id;
-        const authorizeStatus = await authorizeAdmin(id, req.decoded.email);
+        const authorizeStatus = await authorizeUser(id, req.decoded.email);
         if (authorizeStatus === 200) {
-            const user = await usersCollection.findOne({ _id: id }, { projection: { suspended: 1 } });
+            const user = await usersCollection.findOne({ _id: id }, { projection: { _id: 0, suspended: 1 } });
 
             if (!user) {
                 return res.status(404).json({ message: "User not found" });
