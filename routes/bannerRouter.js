@@ -1,11 +1,13 @@
 import express from 'express';
-import { addBanner, deleteBanner, getAllBanner, updateBanner } from '../controllers/bannerController.js';
+import { addBanner, deleteBanner, getAllBanner, getSliderImages, updateBanner } from '../controllers/bannerController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyAdmin } from '../controllers/authorizationController.js';
 
 const bannerRouter = express.Router();
 
-bannerRouter.get('/get', getAllBanner);
+bannerRouter.get('/slider-images', getSliderImages); 
+
+bannerRouter.get('/get', getAllBanner); 
 
 // need admin verifcation
 bannerRouter.post('/add', verifyToken, verifyAdmin, addBanner);
