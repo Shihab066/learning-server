@@ -206,7 +206,7 @@ export const getSuspendedStatus = async (req, res) => {
         }
         else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
-        console.error("Error updating user role:", error);
+        console.error("Error getting suspension status:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };

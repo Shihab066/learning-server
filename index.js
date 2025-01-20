@@ -147,7 +147,7 @@ app.use('/api/v1/wishlist', wishlistRouter);
 app.use('/api/v1/payment', paymentRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/banner', bannerRouter);
-app.use('/api/v1/suspention', suspentionRouter);
+app.use('/api/v1/suspension', suspentionRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
 
 app.get('/', async (req, res) => {

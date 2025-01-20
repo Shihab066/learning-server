@@ -1,4 +1,5 @@
 import { getSuspendedUsersCollection, getUsersCollection } from "../collections.js";
+import { authorizeUser } from "./authorizationController.js";
 
 export const getSuspendedUsers = async (req, res) => {
     try {
@@ -96,6 +97,37 @@ export const getSuspendedUsers = async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching suspension data:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const getSuspensionDetails = async (req, res) => {
+    try {
+        const suspendedUsersCollection = await getSuspendedUsersCollection(); 
+        const { userId } = req.params;
+
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
+
+        if (authorizeStatus === 200) {    
+            const query = {
+                user_id: userId
+            }
+
+            const options = {
+                projection: {
+                    _id: 0,
+                    user_id: 0,
+                    admin_id: 0,
+                    suspension_date: 0
+                }
+            }
+            const suspentionDetails = await suspendedUsersCollection.findOne(query, options);
+            res.json(suspentionDetails);
+        }
+        else if(authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+    } catch (error) {
+        console.error("Error fetching suspension detials:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
