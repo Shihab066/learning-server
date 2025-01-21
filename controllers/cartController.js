@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getCartCollection, getCoursesCollection, getEnrollmentCollection } from "../collections.js";
+import { authorizeUser } from "./authorizationController.js";
 
 export const getCartItems = async (req, res) => {
     try {
@@ -14,9 +15,15 @@ export const getCartItems = async (req, res) => {
             }
         }
 
-        const result = await cart.find({ userId }, options).toArray();
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
 
-        res.status(200).json(result);
+        if (authorizeStatus === 200) {
+            const result = await cart.find({ userId }, options).toArray();
+
+            res.status(200).json(result);
+        }
+        else if (authorizeStatus === 403) return res.status(403).json({ error: true, message: 'Forbidden Access' });
+
     } catch (error) {
         console.error("Error fetching cart:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -32,6 +39,7 @@ export const getCartCourses = async (req, res) => {
 
         // Find all courses with courseIds from the wishlist
         const courseCollection = await getCoursesCollection();
+
         const courses = await courseCollection.aggregate([
             {
                 $match: { _id: { $in: courseIds } }
@@ -122,8 +130,13 @@ export const updateCartItemStatus = async (req, res) => {
             }
         };
 
-        const result = await cartCollection.updateOne({ userId, courseId }, updateDoc);
-        res.json(result);
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
+
+        if (authorizeStatus === 200) {
+            const result = await cartCollection.updateOne({ userId, courseId }, updateDoc);
+            res.json(result);
+        }
+        else if (authorizeStatus === 403) return res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error updating cart item status:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -135,9 +148,14 @@ export const deleteCartItem = async (req, res) => {
         const cartCollection = await getCartCollection();
         const { userId, courseId } = req.params;
 
-        const result = await cartCollection.deleteOne({ userId, courseId });
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
 
-        res.json(result);
+        if (authorizeStatus === 200) {
+            const result = await cartCollection.deleteOne({ userId, courseId });
+
+            res.json(result);
+        }
+        else if (authorizeStatus === 403) return res.status(403).json({ error: true, message: 'Forbidden Access' });
     } catch (error) {
         console.error("Error deleting cart item:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
