@@ -1,21 +1,18 @@
 import express from 'express';
 import { addBanner, deleteBanner, getAllBanner, getSliderImages, updateBanner } from '../controllers/bannerController.js';
 import { verifyToken } from '../controllers/jwtController.js';
-import { verifyAdmin } from '../controllers/authorizationController.js';
+import { verifyActiveUser, verifyAdmin } from '../controllers/authorizationController.js';
 
 const bannerRouter = express.Router();
 
-bannerRouter.get('/slider-images', getSliderImages); 
+bannerRouter.get('/slider-images', getSliderImages);
 
-bannerRouter.get('/get', getAllBanner); 
+bannerRouter.get('/get', verifyToken, verifyActiveUser, verifyAdmin, getAllBanner);
 
-// need admin verifcation
-bannerRouter.post('/add', verifyToken, verifyAdmin, addBanner);
+bannerRouter.post('/add', verifyToken, verifyActiveUser, verifyAdmin, addBanner);
 
-// need admin verifcation
-bannerRouter.patch('/update/:bannerId',verifyToken, verifyAdmin, updateBanner);
+bannerRouter.patch('/update/:bannerId', verifyToken, verifyActiveUser, verifyAdmin, updateBanner);
 
-// need admin verifcation
-bannerRouter.delete('/delete/:bannerId',verifyToken, verifyAdmin, deleteBanner);
+bannerRouter.delete('/delete/:bannerId', verifyToken, verifyActiveUser, verifyAdmin, deleteBanner);
 
 export default bannerRouter;
