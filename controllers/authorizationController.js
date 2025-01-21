@@ -20,6 +20,26 @@ export const verifyActiveUser = async (req, res, next) => {
     }
 };
 
+export const verifyStudent = async (req, res, next) => {
+    try {
+        const usersCollection = await getUsersCollection();
+        const email = req.decoded?.email;
+        if (!email) {
+            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+        }
+
+        const user = await usersCollection.findOne({ email });
+        if (user?.role !== 'student') {
+            return res.status(403).json({ error: true, message: 'Forbidden Access' });
+        }
+
+        next();
+    } catch (error) {
+        console.error("Error verifying student:", error);
+        res.status(500).json({ error: true, message: 'Internal server error' });
+    }
+};
+
 export const verifyInstructor = async (req, res, next) => {
     try {
         const usersCollection = await getUsersCollection();
