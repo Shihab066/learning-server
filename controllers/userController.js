@@ -89,7 +89,14 @@ export const addUser = async (req, res) => {
         const usersCollection = await getUsersCollection();
         const userData = req.body;
 
-        const result = await usersCollection.insertOne(userData);
+        const finalUserData = {
+            ...userData,
+            image: "",
+            role: "student",
+            suspended: false
+        }
+
+        const result = await usersCollection.insertOne(finalUserData);
 
         res.status(201).json({ message: "User added successfully", result });
     } catch (error) {
