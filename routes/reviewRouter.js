@@ -21,7 +21,7 @@ reviewRouter.get('/get/:courseId', getCourseReviews);
 reviewRouter.get('/instructor/:instructorId', verifyToken, verifyActiveUser, verifyInstructor, getInstructorReviews);
 
 // add review by courseID. Add a logic to check if the user really enrolled the course
-reviewRouter.post('/add',verifyToken, verifyActiveUser, verifyStudent, addReview);
+reviewRouter.post('/add/:userId',verifyToken, verifyActiveUser, verifyStudent, addReview);
 
 // update review by courseID. Add a logic to check if the user really enrolled the course
 reviewRouter.post('/update',verifyToken, verifyActiveUser, verifyStudent, updateReview);

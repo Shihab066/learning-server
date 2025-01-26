@@ -105,6 +105,8 @@ export const addReview = async (req, res) => {
         const coursesCollection = await getCoursesCollection();
         const enrollmentCollection = await getEnrollmentCollection();
 
+        const { userId } = req.params;
+
         const reviewInfo = req.body;
         const { _courseId } = reviewInfo;
 
@@ -118,7 +120,7 @@ export const addReview = async (req, res) => {
         const result = await reviewsCollection.insertOne(reviewData);
 
         // change state of reviewed to true
-        await enrollmentCollection.updateOne({ courseId: _courseId }, { $set: { reviewed: true } });
+        await enrollmentCollection.updateOne({ courseId: _courseId, userId }, { $set: { reviewed: true } });
 
         const query = { _courseId };
         const options = { projection: { _id: 0, rating: 1 } };
