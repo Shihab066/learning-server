@@ -22,7 +22,7 @@ userRouter.get('/role/:id', getUserRoleById);
 userRouter.get('/suspendedStatus/:id', verifyToken, verifyActiveUser, getSuspendedStatus);
 
 //add user
-userRouter.post('/add', addUser);
+userRouter.post('/add', verifyToken, addUser);
 
 // update user info.
 userRouter.patch('/update/:id', verifyToken, verifyActiveUser, updateUserById);

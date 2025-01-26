@@ -4,14 +4,14 @@ import { verifyToken } from '../controllers/jwtController.js';
 import { verifyActiveUser, verifyAdmin, verifyInstructor } from '../controllers/authorizationController.js';
 
 const dashboardRouter = express.Router();
-dashboardRouter.use(verifyActiveUser);
+dashboardRouter.use(verifyToken, verifyActiveUser);
 
-dashboardRouter.get('/admin/getTotalSalesData', verifyToken, verifyAdmin, getTotalSalesData);
+dashboardRouter.get('/admin/getTotalSalesData', verifyAdmin, getTotalSalesData);
 
-dashboardRouter.get('/instructor/getTotalSalesData/:instructorId', verifyToken, verifyInstructor, getInstructorTotalSalesData);
+dashboardRouter.get('/instructor/getTotalSalesData/:instructorId', verifyInstructor, getInstructorTotalSalesData);
 
-dashboardRouter.get('/instructor/getReviewsStatistics/:instructorId', verifyToken, verifyInstructor, getInstructorReviewsStatistics);
+dashboardRouter.get('/instructor/getReviewsStatistics/:instructorId', verifyInstructor, getInstructorReviewsStatistics);
 
-dashboardRouter.get('/instructor/getCoursesStatistics/:instructorId',verifyToken, verifyInstructor, getInstructorCoursesStatistics);
+dashboardRouter.get('/instructor/getCoursesStatistics/:instructorId', verifyInstructor, getInstructorCoursesStatistics);
 
 export default dashboardRouter;

@@ -88,9 +88,11 @@ export const addUser = async (req, res) => {
     try {
         const usersCollection = await getUsersCollection();
         const userData = req.body;
+        const userEmail = userData.email;
 
         const finalUserData = {
             ...userData,
+            email: userEmail.toLowerCase(),
             image: "",
             role: "student",
             suspended: false
