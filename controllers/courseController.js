@@ -597,7 +597,7 @@ export const getCourseContents = async (req, res) => {
         const { studentId, courseId } = req.params;
 
         const contents = await courseCollection.findOne({ _id: new ObjectId(courseId) }, { projection: { courseName: 1, courseContents: 1 } });
-        const currentProgress = await enrollmentCollection.findOne({ courseId }, { projection: { totalLecturesWatched: 1 } })
+        const currentProgress = await enrollmentCollection.findOne({ courseId, userId: studentId }, { projection: { totalLecturesWatched: 1 } })
 
         res.json({ currentProgress, contents });
     } catch (error) {
@@ -615,7 +615,7 @@ export const updateCourseProgress = async (req, res) => {
         const options = { upsert: true };
         const updateDoc = {
             $set: {
-                totalLecturesWatched: totalVideoWatched,                
+                totalLecturesWatched: totalVideoWatched,
             }
         };
 
