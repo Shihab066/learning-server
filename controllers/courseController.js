@@ -381,9 +381,11 @@ export const updateCourseById = async (req, res) => {
         const coursesCollection = await getCoursesCollection();
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
-        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
 
-        if (authorizeStatus === 200) {
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
+        const isCourseOwner = await coursesCollection.findOne({ _id: new ObjectId(courseId), _instructorId: instructorId });
+
+        if (authorizeStatus === 200 && isCourseOwner) {
             const updatedCourseData = req.body;
             const filter = { _id: new ObjectId(courseId) };
             const updateDoc = { $set: updatedCourseData };
@@ -409,8 +411,11 @@ export const updateCoursePublishStatus = async (req, res) => {
         const coursesCollection = await getCoursesCollection();
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
+
         const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
-        if (authorizeStatus === 200) {
+        const isCourseOwner = await coursesCollection.findOne({ _id: new ObjectId(courseId), _instructorId: instructorId });
+
+        if (authorizeStatus === 200 && isCourseOwner) {
             const { publish } = req.body;
             const filter = { _id: new ObjectId(courseId) };
             const updateDoc = { $set: { publish } };
@@ -513,9 +518,11 @@ export const deleteCourse = async (req, res) => {
         const coursesCollection = await getCoursesCollection();
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
-        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
 
-        if (authorizeStatus === 200) {
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);        
+        const isCourseOwner = await coursesCollection.findOne({ _id: new ObjectId(courseId), _instructorId: instructorId });
+
+        if (authorizeStatus === 200 && isCourseOwner) {
             const query = { _id: new ObjectId(courseId) };
             const course = await coursesCollection.findOne(query, { projection: { _instructorId: 1 } });
 
@@ -544,45 +551,50 @@ export const getStudentCourses = async (req, res) => {
 
         const { studentId } = req.params;
 
-        const enrollmentCourses = await enrollmentCollection.aggregate([
-            // Stage 1: Match enrollments for the given studentId
-            {
-                $match: { userId: studentId }
-            },
-            // Stage 2: Convert courseId to ObjectId
-            {
-                $addFields: {
-                    courseIdObj: { $toObjectId: "$courseId" }
+        const authorizeStatus = await authorizeUser(studentId, req.decoded.email);
+        if (authorizeStatus === 200) {
+            const enrollmentCourses = await enrollmentCollection.aggregate([
+                // Stage 1: Match enrollments for the given studentId
+                {
+                    $match: { userId: studentId }
+                },
+                // Stage 2: Convert courseId to ObjectId
+                {
+                    $addFields: {
+                        courseIdObj: { $toObjectId: "$courseId" }
+                    }
+                },
+                // Stage 3: Lookup to join with the courseCollection
+                {
+                    $lookup: {
+                        from: "classes",
+                        localField: "courseIdObj",
+                        foreignField: "_id",
+                        as: "courseDetails"
+                    }
+                },
+                // Stage 4: Unwind courseDetails array (since lookup returns an array)
+                {
+                    $unwind: "$courseDetails"
+                },
+                // Stage 5: Project desired fields (from both collections)
+                {
+                    $project: {
+                        _id: 0,
+                        courseId: 1, // Original courseId                   
+                        totalLecturesWatched: 1,
+                        courseName: "$courseDetails.courseName", // Course name from joined collection
+                        courseThumbnail: "$courseDetails.courseThumbnail",
+                        instructorName: "$courseDetails.instructorName",
+                        totalVideos: "$courseDetails.totalVideos"
+                    }
                 }
-            },
-            // Stage 3: Lookup to join with the courseCollection
-            {
-                $lookup: {
-                    from: "classes",
-                    localField: "courseIdObj",
-                    foreignField: "_id",
-                    as: "courseDetails"
-                }
-            },
-            // Stage 4: Unwind courseDetails array (since lookup returns an array)
-            {
-                $unwind: "$courseDetails"
-            },
-            // Stage 5: Project desired fields (from both collections)
-            {
-                $project: {
-                    _id: 0,
-                    courseId: 1, // Original courseId                   
-                    totalLecturesWatched: 1,
-                    courseName: "$courseDetails.courseName", // Course name from joined collection
-                    courseThumbnail: "$courseDetails.courseThumbnail",
-                    instructorName: "$courseDetails.instructorName",
-                    totalVideos: "$courseDetails.totalVideos"
-                }
-            }
-        ]).toArray();
+            ]).toArray();
 
-        res.json(enrollmentCourses);
+            res.json(enrollmentCourses);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' })
+
     } catch (error) {
         console.error("Error fetching student courses:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -596,10 +608,16 @@ export const getCourseContents = async (req, res) => {
 
         const { studentId, courseId } = req.params;
 
-        const contents = await courseCollection.findOne({ _id: new ObjectId(courseId) }, { projection: { courseName: 1, courseContents: 1 } });
-        const currentProgress = await enrollmentCollection.findOne({ courseId, userId: studentId }, { projection: { totalLecturesWatched: 1 } })
+        const authorizeStatus = await authorizeUser(studentId, req.decoded.email);
+        const isEnrolled = await enrollmentCollection.findOne({ courseId, userId: studentId });
+        if (authorizeStatus === 200 && isEnrolled) {
+            const contents = await courseCollection.findOne({ _id: new ObjectId(courseId) }, { projection: { courseName: 1, courseContents: 1 } });
+            const currentProgress = await enrollmentCollection.findOne({ courseId, userId: studentId }, { projection: { totalLecturesWatched: 1 } })
 
-        res.json({ currentProgress, contents });
+            res.json({ currentProgress, contents });
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: "Forbidden Access" })
+
     } catch (error) {
         console.error("Error fetching course contents:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -612,15 +630,22 @@ export const updateCourseProgress = async (req, res) => {
         const { studentId, courseId } = req.params;
         const { totalVideoWatched } = req.body;
 
-        const options = { upsert: true };
-        const updateDoc = {
-            $set: {
-                totalLecturesWatched: totalVideoWatched,
-            }
-        };
+        const authorizeStatus = await authorizeUser(studentId, req.decoded.email);
+        const isEnrolled = await enrollmentCollection.findOne({ userId: studentId, courseId });
 
-        const result = await enrollmentCollection.updateOne({ userId: studentId, courseId }, updateDoc, options);
-        res.json(result);
+        if (authorizeStatus === 200 && isEnrolled) {
+
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: {
+                    totalLecturesWatched: totalVideoWatched,
+                }
+            };
+
+            const result = await enrollmentCollection.updateOne({ userId: studentId, courseId }, updateDoc, options);
+            res.json(result);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' })
 
     } catch (error) {
         console.error("Error updating course progress:", error);
