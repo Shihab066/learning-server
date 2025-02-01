@@ -2,7 +2,7 @@
 
 import { ObjectId } from "mongodb";
 import { getCoursesCollection, getEnrollmentCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
-import { authorizeUser, authorizeUser } from "./authorizationController.js";
+import { authorizeUser } from "./authorizationController.js";
 
 export const getCourseRatings = async (req, res) => {
     try {

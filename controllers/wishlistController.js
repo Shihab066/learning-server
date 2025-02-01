@@ -1,7 +1,6 @@
 import { ObjectId } from "mongodb";
 import { getCoursesCollection, getWishlistCollection } from "../collections.js";
 import { authorizeUser } from "./authorizationController.js";
-import { messaging } from "firebase-admin";
 
 export const getWishListItems = async (req, res) => {
     try {
@@ -88,7 +87,7 @@ export const removeWishListItem = async (req, res) => {
             res.json(result);
         }
         else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
-        
+
     } catch (error) {
         console.log('Error deleting wishListItem:', error);
         res.status(500).json({ message: "Internal server error", error: error.message });
