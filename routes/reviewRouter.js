@@ -17,13 +17,13 @@ reviewRouter.get('/pending-reviews/:studentId',verifyToken, verifyActiveUser, ve
 // get course reviews by courseID
 reviewRouter.get('/get/:courseId', getCourseReviews);
 
-// get course reviews by instructorId. Should add Instructor verify
+// get course reviews by instructorId.
 reviewRouter.get('/instructor/:instructorId', verifyToken, verifyActiveUser, verifyInstructor, getInstructorReviews);
 
-// add review by courseID. Add a logic to check if the user really enrolled the course
+// add review by courseID.
 reviewRouter.post('/add/:userId',verifyToken, verifyActiveUser, verifyStudent, addReview);
 
-// update review by courseID. Add a logic to check if the user really enrolled the course
+// update review by courseID.
 reviewRouter.post('/update',verifyToken, verifyActiveUser, verifyStudent, updateReview);
 
 

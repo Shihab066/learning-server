@@ -1,5 +1,5 @@
 import express from 'express';
-import { addVideoPlaylist, generateSignedUrl, getSignature, getVideoPlayList, getVideoUploadSignature } from '../controllers/mediaUploadController.js';
+import { addVideoPlaylist, getSignature, getVideoPlayList, getVideoUploadSignature } from '../controllers/mediaUploadController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyActiveUser, verifyInstructor } from '../controllers/authorizationController.js';
 

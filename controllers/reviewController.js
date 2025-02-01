@@ -2,6 +2,7 @@
 
 import { ObjectId } from "mongodb";
 import { getCoursesCollection, getEnrollmentCollection, getReviewsCollection, getUsersCollection } from "../collections.js";
+import { authorizeUser, authorizeUser } from "./authorizationController.js";
 
 export const getCourseRatings = async (req, res) => {
     try {
@@ -69,30 +70,37 @@ export const getInstructorReviews = async (req, res) => {
         const searchValue = req.query.search || '';
         const limit = parseInt(req.query.limit) || 4;
 
-        const query = {
-            _instructorId: instructorId,
-            $or: [
-                { courseName: { $regex: searchValue, $options: 'i' } },
-                { userName: { $regex: searchValue, $options: 'i' } }
-            ]
-        };
+        const authorizeStatus = await authorizeUser(instructorId, req.decoded.email);
 
-        const options = {
-            projection: {
-                _id: 0,
-                userName: 1,
-                userImage: 1,
-                courseName: 1,
-                rating: 1,
-                date: 1,
-                review: 1,
-            }
-        };
+        if (authorizeStatus === 200) {
 
-        const totalReviews = await reviewsCollection.countDocuments(query);
-        const reviews = await reviewsCollection.find(query, options).limit(limit).toArray();
+            const query = {
+                _instructorId: instructorId,
+                $or: [
+                    { courseName: { $regex: searchValue, $options: 'i' } },
+                    { userName: { $regex: searchValue, $options: 'i' } }
+                ]
+            };
 
-        res.status(200).json({ reviews, totalReviews });
+            const options = {
+                projection: {
+                    _id: 0,
+                    userName: 1,
+                    userImage: 1,
+                    courseName: 1,
+                    rating: 1,
+                    date: 1,
+                    review: 1,
+                }
+            };
+
+            const totalReviews = await reviewsCollection.countDocuments(query);
+            const reviews = await reviewsCollection.find(query, options).limit(limit).toArray();
+
+            res.status(200).json({ reviews, totalReviews });
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
     } catch (error) {
         console.error("Error fetching instructor reviews:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -106,42 +114,48 @@ export const addReview = async (req, res) => {
         const enrollmentCollection = await getEnrollmentCollection();
 
         const { userId } = req.params;
-
         const reviewInfo = req.body;
         const { _courseId } = reviewInfo;
 
-        const courseInfo = await coursesCollection.findOne({ _id: new ObjectId(_courseId) }, { projection: { _id: 0, _instructorId: 1, courseName: 1, courseThumbnail: 1 } });
-        const reviewData = {
-            ...reviewInfo,
-            ...courseInfo,
-            date: new Date()
-        };
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
+        const isEnrolled = await enrollmentCollection.findOne({ userId, courseId: _courseId });
 
-        const result = await reviewsCollection.insertOne(reviewData);
+        if (authorizeStatus === 200 && isEnrolled) {
+            const courseInfo = await coursesCollection.findOne({ _id: new ObjectId(_courseId) }, { projection: { _id: 0, _instructorId: 1, courseName: 1, courseThumbnail: 1 } });
+            const reviewData = {
+                ...reviewInfo,
+                ...courseInfo,
+                date: new Date()
+            };
 
-        // change state of reviewed to true
-        await enrollmentCollection.updateOne({ courseId: _courseId, userId }, { $set: { reviewed: true } });
+            const result = await reviewsCollection.insertOne(reviewData);
 
-        const query = { _courseId };
-        const options = { projection: { _id: 0, rating: 1 } };
+            // change state of reviewed to true
+            await enrollmentCollection.updateOne({ courseId: _courseId, userId }, { $set: { reviewed: true } });
 
-        const ratings = await reviewsCollection.find(query, options).toArray();
-        const ratingsArr = ratings.map(rating => rating.rating);
+            const query = { _courseId };
+            const options = { projection: { _id: 0, rating: 1 } };
 
-        const totalReviews = ratingsArr.length;
-        const averageRating = totalReviews > 0 ? parseFloat((ratingsArr.reduce((acc, curr) => acc + curr, 0) / totalReviews).toFixed(1)) : 0;
+            const ratings = await reviewsCollection.find(query, options).toArray();
+            const ratingsArr = ratings.map(rating => rating.rating);
 
-        const filter = { _id: new ObjectId(_courseId) };
-        const updateCourseRating = {
-            $set: {
-                rating: averageRating,
-                totalReviews
-            }
-        };
+            const totalReviews = ratingsArr.length;
+            const averageRating = totalReviews > 0 ? parseFloat((ratingsArr.reduce((acc, curr) => acc + curr, 0) / totalReviews).toFixed(1)) : 0;
 
-        await coursesCollection.updateOne(filter, updateCourseRating);
+            const filter = { _id: new ObjectId(_courseId) };
+            const updateCourseRating = {
+                $set: {
+                    rating: averageRating,
+                    totalReviews
+                }
+            };
 
-        res.status(201).json(result);
+            await coursesCollection.updateOne(filter, updateCourseRating);
+
+            res.status(201).json(result);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
     } catch (error) {
         console.error("Error adding review:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -152,43 +166,51 @@ export const updateReview = async (req, res) => {
     try {
         const reviewsCollection = await getReviewsCollection();
         const coursesCollection = await getCoursesCollection();
+        const enrollmentCollection = await getEnrollmentCollection();
 
         const reviewInfo = req.body;
         const { _courseId, _studentId, rating, review } = reviewInfo;
 
-        const reviewFilter = {
-            _courseId,
-            _studentId
-        };
-        const updatedReviewData = {
-            $set: {
-                rating,
-                review
-            }
-        };
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
+        const isEnrolled = await enrollmentCollection.findOne({ userId: _studentId, courseId: _courseId });
 
-        const result = await reviewsCollection.updateOne(reviewFilter, updatedReviewData);
+        if (authorizeStatus === 200 && isEnrolled) {
+            const reviewFilter = {
+                _courseId,
+                _studentId
+            };
+            const updatedReviewData = {
+                $set: {
+                    rating,
+                    review
+                }
+            };
 
-        const query = { _courseId };
-        const options = { projection: { _id: 0, rating: 1 } };
+            const result = await reviewsCollection.updateOne(reviewFilter, updatedReviewData);
 
-        const ratings = await reviewsCollection.find(query, options).toArray();
-        const ratingsArr = ratings.map(rating => rating.rating);
+            const query = { _courseId };
+            const options = { projection: { _id: 0, rating: 1 } };
 
-        const totalReviews = ratingsArr.length;
-        const averageRating = totalReviews > 0 ? parseFloat((ratingsArr.reduce((acc, curr) => acc + curr, 0) / totalReviews).toFixed(1)) : 0;
+            const ratings = await reviewsCollection.find(query, options).toArray();
+            const ratingsArr = ratings.map(rating => rating.rating);
 
-        const filter = { _id: new ObjectId(_courseId) };
-        const updateCourseRating = {
-            $set: {
-                rating: averageRating,
-                totalReviews
-            }
-        };
+            const totalReviews = ratingsArr.length;
+            const averageRating = totalReviews > 0 ? parseFloat((ratingsArr.reduce((acc, curr) => acc + curr, 0) / totalReviews).toFixed(1)) : 0;
 
-        await coursesCollection.updateOne(filter, updateCourseRating);
+            const filter = { _id: new ObjectId(_courseId) };
+            const updateCourseRating = {
+                $set: {
+                    rating: averageRating,
+                    totalReviews
+                }
+            };
 
-        res.status(201).json(result);
+            await coursesCollection.updateOne(filter, updateCourseRating);
+
+            res.status(201).json(result);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
     } catch (error) {
         console.error("Error adding review:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -201,24 +223,30 @@ export const getMyReviews = async (req, res) => {
         const { studentId } = req.params;
         const limit = parseInt(req.query.limit);
 
-        const reviewsCount = await reviewsCollection.countDocuments({ _studentId: studentId });
-        const reviews = await reviewsCollection.find(
-            {
-                _studentId: studentId
-            },
-            {
-                projection: {
-                    _courseId: 1,
-                    courseName: 1,
-                    courseThumbnail: 1,
-                    rating: 1,
-                    review: 1,
-                    date: 1,
-                }
-            }
-        ).limit(limit || 6).sort({ enrollmentDate: -1 }).toArray();
+        const authorizeStatus = await authorizeUser(studentId, req.decoded.email);
 
-        res.json({ reviewsCount, reviews });
+        if (authorizeStatus === 200) {
+            const reviewsCount = await reviewsCollection.countDocuments({ _studentId: studentId });
+            const reviews = await reviewsCollection.find(
+                {
+                    _studentId: studentId
+                },
+                {
+                    projection: {
+                        _courseId: 1,
+                        courseName: 1,
+                        courseThumbnail: 1,
+                        rating: 1,
+                        review: 1,
+                        date: 1,
+                    }
+                }
+            ).limit(limit || 6).sort({ enrollmentDate: -1 }).toArray();
+
+            res.json({ reviewsCount, reviews });
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, messagge: 'Forbidden Access' });
+
     } catch (error) {
         console.error("Error fetching reviews:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
@@ -270,11 +298,17 @@ export const getPendingReviews = async (req, res) => {
             }
         ];
 
-        // Execute the aggregation pipeline
-        const pendingReviewsCount = await enrollmentCollection.countDocuments({ userId: studentId, reviewed: false });
-        const pendingReviews = await enrollmentCollection.aggregate(pipeline).limit(limit || 6).sort({ enrollmentDate: -1 }).toArray();
+        const authorizeStatus = await authorizeUser(studentId, req.decoded.email);
 
-        res.json({ pendingReviewsCount, pendingReviews });
+        if (authorizeStatus === 200) {
+            // Execute the aggregation pipeline
+            const pendingReviewsCount = await enrollmentCollection.countDocuments({ userId: studentId, reviewed: false });
+            const pendingReviews = await enrollmentCollection.aggregate(pipeline).limit(limit || 6).sort({ enrollmentDate: -1 }).toArray();
+
+            res.json({ pendingReviewsCount, pendingReviews });
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
     } catch (error) {
         console.error("Error fetching pending reviews:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });

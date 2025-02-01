@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { getCartCollection, getCoursesCollection, getEnrollmentCollection, getPaymentsCollection, getTemporaryTokensCollection } from '../collections.js';
 import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
+import { authorizeUser } from './authorizationController.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -104,7 +105,7 @@ export const retrieveCheckoutSession = async (req, res) => {
             await paymentCollection.insertOne(paymentInfo);
 
             // Insert enrollment info to the database
-            const enrollmentInfo = courses.map(({courseId, _instructorId, price}) => ({
+            const enrollmentInfo = courses.map(({ courseId, _instructorId, price }) => ({
                 userId: session.metadata.user_id,
                 _instructorId,
                 courseId,
@@ -113,7 +114,7 @@ export const retrieveCheckoutSession = async (req, res) => {
                 price,
                 status: 'active',
                 reviewed: false,
-                complete: false,                
+                complete: false,
                 totalLecturesWatched: 0
             }));
 
@@ -161,21 +162,26 @@ export const getPaymentsData = async (req, res) => {
         const paymentCollection = await getPaymentsCollection();
         const { studentId } = req.params;
 
-        const paymentsData = await paymentCollection.find(
-            { userId: studentId },
-            {
-                projection: {
-                    courses: 1,
-                    amount: 1,
-                    status: 1,
-                    transactionId: 1,
-                    receipt: 1,
-                    purchaseDate: 1
-                }
-            }
-        ).sort({ purchaseDate: -1 }).toArray();
+        const authorizeStatus = await authorizeUser(studentId, req.decoded.email);
 
-        res.json(paymentsData);
+        if (authorizeStatus === 200) {
+            const paymentsData = await paymentCollection.find(
+                { userId: studentId },
+                {
+                    projection: {
+                        courses: 1,
+                        amount: 1,
+                        status: 1,
+                        transactionId: 1,
+                        receipt: 1,
+                        purchaseDate: 1
+                    }
+                }
+            ).sort({ purchaseDate: -1 }).toArray();
+
+            res.json(paymentsData);
+        }
+        else if (authorizeStatus === 403) res.status.json({ error: true, message: 'Forbidden Access' });
 
     } catch (error) {
         console.error('Error retriving payments data:', error);
