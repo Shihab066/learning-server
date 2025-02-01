@@ -1,15 +1,22 @@
 import { ObjectId } from "mongodb";
 import { getCoursesCollection, getWishlistCollection } from "../collections.js";
+import { authorizeUser } from "./authorizationController.js";
+import { messaging } from "firebase-admin";
 
 export const getWishListItems = async (req, res) => {
     try {
         const wishlistCollection = await getWishlistCollection();
         const { userId } = req.params;
 
-        const cursor = wishlistCollection.find({ userId }, { projection: { courseId: 1 } })
-        const wishlist = await cursor.toArray();
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
 
-        res.json(wishlist);
+        if (authorizeStatus === 200) {
+            const cursor = wishlistCollection.find({ userId }, { projection: { courseId: 1 } })
+            const wishlist = await cursor.toArray();
+
+            res.json(wishlist);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
 
     } catch (error) {
         console.log('Error fetching wishListItem:', error);
@@ -73,8 +80,15 @@ export const removeWishListItem = async (req, res) => {
     try {
         const wishlistCollection = await getWishlistCollection();
         const { userId, courseId } = req.params;
-        const result = await wishlistCollection.deleteOne({ userId, courseId });
-        res.json(result);
+
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
+
+        if (authorizeStatus === 200) {
+            const result = await wishlistCollection.deleteOne({ userId, courseId });
+            res.json(result);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+        
     } catch (error) {
         console.log('Error deleting wishListItem:', error);
         res.status(500).json({ message: "Internal server error", error: error.message });
