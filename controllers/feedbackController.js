@@ -29,7 +29,7 @@ export const getFeedbackById = async (req, res) => {
 
         const { userId } = req.params;
 
-        const authorizeStatus = await authorizeStatus(userId, req.decoded.email);
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
         if (authorizeStatus === 200) {
             const options = {
                 projection: {
