@@ -358,6 +358,7 @@ export const addNewCourse = async (req, res) => {
         const newCourse = req.body;
         const modifiedCourse = {
             ...newCourse,
+            _id: new ObjectId(newCourse._id),
             students: 0,
             courseCompleted: 0,
             status: 'pending',

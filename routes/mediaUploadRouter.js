@@ -1,5 +1,5 @@
 import express from 'express';
-import { addVideoPlaylist, getSignature, getVideoPlayList, getVideoUploadSignature } from '../controllers/mediaUploadController.js';
+import { addVideoPlaylist, generateSignedUrlToGetVideo, getSignature, getVideoPlayList, getVideoUploadSignature } from '../controllers/mediaUploadController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyActiveUser, verifyInstructor } from '../controllers/authorizationController.js';
 
@@ -15,7 +15,7 @@ mediaUploadRouter.get('/video/get-signature', verifyToken, verifyActiveUser, ver
 mediaUploadRouter.get('/video/get/:publicId',  getVideoPlayList);
 
 // add video playlist by publicId. (todo Add the course ID to the playlist so it can be used to verify if the user is enrolled in the course also made some change while adding the playlist dont make playlist with authenticate code as it may expire and need new code)
-mediaUploadRouter.post('/video/add/:publicId', addVideoPlaylist);
+mediaUploadRouter.post('/video/add/:publicId/:courseId', addVideoPlaylist);
 
-
+mediaUploadRouter.get('/video/custom/:publicId', generateSignedUrlToGetVideo);
 export default mediaUploadRouter;
