@@ -65,13 +65,13 @@ export const generateSignedUrlToAddVideo = (publicId) => {
         type: 'authenticated',
         sign_url: true,
         format: 'm3u8',
-        streaming_profile: 'auto',
+        streaming_profile: 'hd',
 
     });
     return url;
 }
-export const generateSignedUrlToGetVideo = (publicId, duration, email) => {
-    // const { publicId } = req.params;
+export const generateSignedUrlToGetVideo = (req, res) => {
+    const { publicId } = req.params;
     const segment = Math.floor(30 / 2);
 
     const getRandomFloat = () => {
@@ -97,7 +97,8 @@ export const generateSignedUrlToGetVideo = (publicId, duration, email) => {
         { overlay: textOverlay({ text: 'md.shihab066@gmail.com', start_offset: 0, end_offset: segment }) },
         { overlay: textOverlay({ text: 'md.shihab066@gmail.com', start_offset: segment, end_offset: segment * 2 }) },
         { overlay: textOverlay({ text: 'md.shihab066@gmail.com', start_offset: segment * 2, end_offset: segment * 3 }) },
-        { overlay: textOverlay({ text: 'md.shihab066@gmail.com', start_offset: segment * 3, end_offset: segment * 4 }) }
+        { overlay: textOverlay({ text: 'md.shihab066@gmail.com', start_offset: segment * 3, end_offset: segment * 4 }) },
+        // {streaming_profile: 'hd'},
     ];
     const url = cloudinary.url(publicId, {
         resource_type: 'video',
@@ -105,14 +106,15 @@ export const generateSignedUrlToGetVideo = (publicId, duration, email) => {
         sign_url: true,
         transformation: transformation,
         format: 'm3u8',
-        // streaming_profile: 'auto',
+        // streaming_profile: 'hd',        
 
     });
 
     if (url) {
         const modifiedUrl = url.split('.m3u8')[0];
-        // res.send(modifiedUrl)
-        return modifiedUrl;
+        res.set('Content-Type', 'application/x-mpegURL');
+        res.send(url)
+        // return modifiedUrl;
     }
     // return url;
     // res.send(url)
