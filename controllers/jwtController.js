@@ -90,3 +90,24 @@ export const verifyToken = (req, res, next) => {
         res.status(500).json({ error: true, message: "Internal server error" });
     }
 };
+
+
+export const verifyTokenToGetVideoPlaylist = (req, res, next) => {
+    try {
+        const token = req.params.jwtToken;
+        
+        if (!token) {
+            return res.status(401).json({ error: true, message: 'Unauthorized Access' });
+        }        
+        jwt.verify(token, process.env.SECRET_TOKEN, (error, decoded) => {
+            if (error) {
+                return res.status(401).json({ error: true, message: 'Unauthorized Access' });
+            }
+            req.decoded = decoded;
+            next();
+        });
+    } catch (error) {
+        console.error("Error verifying token:", error);
+        res.status(500).json({ error: true, message: "Internal server error" });
+    }
+};
