@@ -520,7 +520,7 @@ export const deleteCourse = async (req, res) => {
         const courseId = req.query.courseId;
         const instructorId = req.query.id;
 
-        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);        
+        const authorizeStatus = await authorizeInstructor(instructorId, req.decoded.email);
         const isCourseOwner = await coursesCollection.findOne({ _id: new ObjectId(courseId), _instructorId: instructorId });
 
         if (authorizeStatus === 200 && isCourseOwner) {
@@ -666,6 +666,31 @@ export const getEnrolledCoursesId = async (req, res) => {
             const enrollmentCourses = await enrollmentCollection.find({ userId: studentId }, { projection: { _id: 0, courseId: 1 } }).toArray();
 
             res.json(enrollmentCourses);
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+    } catch (error) {
+        console.error("Error fetching enrolled courses id:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
+
+export const getEnrollmentStatus = async (req, res) => {
+    try {
+        const enrollmentCollection = await getEnrollmentCollection();
+
+        const { studentId, courseId } = req.params;
+
+        const authorizeStatus = await authorizeUser(studentId, req.decoded.email);
+
+        if (authorizeStatus === 200) {
+            const enrolled = await enrollmentCollection.findOne({ userId: studentId, courseId });
+            if (enrolled) {
+                return res.status(200).json({ isEnrolled: true });
+            } else {
+                return res.status(200).json({ isEnrolled: false });
+            }
+
         }
         else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
 

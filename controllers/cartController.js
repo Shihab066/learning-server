@@ -2,6 +2,28 @@ import { ObjectId } from "mongodb";
 import { getCartCollection, getCoursesCollection, getEnrollmentCollection } from "../collections.js";
 import { authorizeUser } from "./authorizationController.js";
 
+export const getCartItem = async (req, res) => {
+    try {
+        const cart = await getCartCollection();
+        const { userId, courseId } = req.params;
+
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
+
+        if (authorizeStatus === 200) {
+            const result = await cart.findOne({ userId, courseId });
+            if (result) {
+                return res.status(200).json({ inCart: true });
+            } else {
+                return res.status(200).json({ inCart: false });
+            }
+        }
+        else if (authorizeStatus === 403) return res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+    } catch (error) {
+        console.error("Error fetching cart:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
 export const getCartItems = async (req, res) => {
     try {
         const cart = await getCartCollection();

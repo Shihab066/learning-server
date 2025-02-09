@@ -2,6 +2,28 @@ import { ObjectId } from "mongodb";
 import { getCoursesCollection, getWishlistCollection } from "../collections.js";
 import { authorizeUser } from "./authorizationController.js";
 
+export const getWishListItem = async (req, res) => {
+    try {
+        const wishlistCollection = await getWishlistCollection();
+        const { userId, courseId } = req.params;
+
+        const authorizeStatus = await authorizeUser(userId, req.decoded.email);
+
+        if (authorizeStatus === 200) {
+            const wishlist = await wishlistCollection.findOne({ userId, courseId });
+            if (wishlist) {
+                return res.status(200).json({ inWishList: true });
+            } else {
+                return res.status(200).json({ inWishList: false });
+            }
+        }
+        else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+    } catch (error) {
+        console.log('Error fetching wishListItem:', error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
+    }
+};
 export const getWishListItems = async (req, res) => {
     try {
         const wishlistCollection = await getWishlistCollection();

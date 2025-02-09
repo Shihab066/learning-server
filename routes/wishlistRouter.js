@@ -1,5 +1,5 @@
 import express from 'express';
-import { addWishListItem, getWishlistCourses, getWishListItems, removeWishListItem } from '../controllers/wishlistController.js';
+import { addWishListItem, getWishlistCourses, getWishListItem, getWishListItems, removeWishListItem } from '../controllers/wishlistController.js';
 import { verifyToken } from '../controllers/jwtController.js';
 import { verifyActiveUser, verifyStudent } from '../controllers/authorizationController.js';
 
@@ -8,6 +8,9 @@ wishlistRouter.use(verifyToken, verifyActiveUser, verifyStudent);
 
 // get wishlist by userId
 wishlistRouter.get('/get/:userId', getWishListItems);
+
+// get wishlist by userId and courseId
+wishlistRouter.get('/get/:userId/:courseId', getWishListItem);
 
 // get wishlist courses by wishlistItems
 wishlistRouter.post('/courses', getWishlistCourses);
