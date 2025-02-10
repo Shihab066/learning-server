@@ -260,7 +260,8 @@ export const getMoreCourseByInstructor = async (req, res) => {
                 totalReviews: 1,
                 totalModules: 1,
                 price: 1,
-                discount: 1
+                discount: 1,
+                courseDuration: 1
             }
         }
         const courses = await coursesCollection.find({ _instructorId: instructorId }, options).toArray();
