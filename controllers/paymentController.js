@@ -45,8 +45,8 @@ export const createCheckoutSession = async (req, res) => {
             payment_method_types: ['card'],
             line_items: lineItems,
             mode: 'payment',
-            success_url: `http://localhost:5173/paymentSuccess/${token}/{CHECKOUT_SESSION_ID}`,
-            cancel_url: `http://localhost:5173/cart?cancel=${token}&session={CHECKOUT_SESSION_ID}`,
+            success_url: `https://learning-point-us.vercel.app/paymentSuccess/${token}/{CHECKOUT_SESSION_ID}`,
+            cancel_url: `https://learning-point-us.vercel.app/cart?cancel=${token}&session={CHECKOUT_SESSION_ID}`,
             expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
             metadata: {
                 user_id: userId,
