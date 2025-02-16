@@ -58,8 +58,8 @@ backend/
 
 ### 1️⃣ Clone the Repository
 ```sh
-git clone <repository-url>
-cd backend
+git clone https://github.com/Shihab066/learning-server.git
+cd learning-server
 ```
 
 ### 2️⃣ Install Dependencies
