@@ -59,7 +59,7 @@ export const getAllApprovedCourses = async (req, res) => {
         const sortValue = parseInt(req.query.sort);
         const searchValue = req.query.search !== "undefined" ? req.query.search : '';
         const skipDocument = (page - 1) * pageSize;
-        const query = { courseName: { $regex: searchValue, $options: 'i' } };
+        const query = { courseName: { $regex: searchValue, $options: 'i' }, status: 'approved', publish: true };
         const options = {
             projection: {
                 _instructorId: 1,
