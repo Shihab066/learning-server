@@ -165,11 +165,11 @@ export const getVideoPlayList = async (req, res) => {
     const enrollementCollection = await getEnrollmentCollection();
     const videoPlaylistCollection = await getVideoPlaylistCollection();
 
-    const { publicId } = req.params;  //video ID
+    const { publicId, courseId } = req.params;  //video ID
 
     const studentEmail = req.decoded.email;    
     const {_id: userId} = await usersCollection.findOne({ email: studentEmail }, { projection: { _id: 1 } });
-    const {courseId} = await videoPlaylistCollection.findOne({ publicId }, {projection: {courseId: 1}});
+    // const {courseId} = await videoPlaylistCollection.findOne({ publicId }, {projection: {courseId: 1}});
 
     const isEnrolled = await enrollementCollection.findOne({ userId, courseId });
     

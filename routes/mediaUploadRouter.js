@@ -12,7 +12,7 @@ mediaUploadRouter.get('/image/get-signature', verifyToken, verifyActiveUser, get
 mediaUploadRouter.get('/video/get-signature', verifyToken, verifyActiveUser, verifyInstructor, getVideoUploadSignature);
 
 // get video link by publicId. (todo verify if the user is enrolled the course before giving the )
-mediaUploadRouter.get('/video/get/:publicId/:jwtToken', verifyTokenToGetVideoPlaylist, verifyActiveUser, verifyStudent, getVideoPlayList);
+mediaUploadRouter.get('/video/get/:courseId/:publicId/:jwtToken', verifyTokenToGetVideoPlaylist, verifyActiveUser, verifyStudent, getVideoPlayList);
 
 // add video playlist by publicId. (todo Add the course ID to the playlist so it can be used to verify if the user is enrolled in the course also made some change while adding the playlist dont make playlist with authenticate code as it may expire and need new code)
 mediaUploadRouter.post('/video/add/:publicId/:courseId', addVideoPlaylist);
