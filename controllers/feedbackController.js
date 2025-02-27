@@ -15,7 +15,7 @@ export const getAllFeedback = async (req, res) => {
             }
         };
 
-        const feedbacks = await feedbackCollection.find({}, options).toArray();
+        const feedbacks = await feedbackCollection.find({}, options).sort({ date: -1 }).limit(6).toArray();
         res.status(200).json(feedbacks);
     } catch (error) {
         console.error("Error fetching feedbacks:", error);
@@ -57,6 +57,10 @@ export const addFeedback = async (req, res) => {
         const feedbackCollection = await getFeedbackCollection();
         const feedback = req.body;
         const userId = feedback.userId;
+        const newFeedback = {
+            ...feedback,
+            date: new Date()
+        }
 
         const authorizeStatus = await authorizeUser(userId, req.decoded.email);
 
@@ -68,7 +72,7 @@ export const addFeedback = async (req, res) => {
             }
 
             // Insert feedback into the collection
-            const result = await feedbackCollection.insertOne(feedback);
+            const result = await feedbackCollection.insertOne(newFeedback);
             res.status(201).json(result);
         }
         else if (authorizeStatus === 403) res.status(403).json({ error: true, message: 'Forbidden Access' });
@@ -93,7 +97,8 @@ export const updateFeedback = async (req, res) => {
             const updateDoc = {
                 $set: {
                     headline,
-                    feedback
+                    feedback,
+                    date: new Date()
                 }
             };
 
