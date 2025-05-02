@@ -145,19 +145,15 @@ export const addVideoPlaylist = async (req, res) => {
     const videoPlaylistCollection = await getVideoPlaylistCollection();
     const { publicId, courseId } = req.params;
     const { duration } = req.body;
-    const videoUrl = generateSignedUrl(publicId);
-    if (videoUrl) {
-        const response = await axios.get(videoUrl);       
-        let videoPlayList = response.data;        
-        const playlist = {
-            courseId,
-            publicId,
-            duration,
-            playlist: videoPlayList
-        }
-        const result = await videoPlaylistCollection.insertOne(playlist);
-        res.send(result);
+
+    const playlist = {
+        courseId,
+        publicId,
+        duration
     }
+
+    const result = await videoPlaylistCollection.insertOne(playlist);
+    res.send(result);
 };
 
 export const getVideoPlayList = async (req, res) => {
@@ -167,22 +163,23 @@ export const getVideoPlayList = async (req, res) => {
 
     const { publicId, courseId } = req.params;  //video ID
 
-    const studentEmail = req.decoded.email;    
-    const {_id: userId} = await usersCollection.findOne({ email: studentEmail }, { projection: { _id: 1 } });
-    // const {courseId} = await videoPlaylistCollection.findOne({ publicId }, {projection: {courseId: 1}});
+    const studentEmail = req.decoded.email;
+    const { _id: userId } = await usersCollection.findOne({ email: studentEmail }, { projection: { _id: 1 } });
 
     const isEnrolled = await enrollementCollection.findOne({ userId, courseId });
-    
-    if (!isEnrolled) return res.status(403).json({error: true, message: 'Forbidden Access'});
 
-    const videoUrl = generateSignedUrl(publicId).split('.m3u8')[0];
-    
+    if (!isEnrolled) return res.status(403).json({ error: true, message: 'Forbidden Access' });
+
+    const videoUrl = generateSignedUrl(publicId);
+
     if (videoUrl) {
-        const { playlist } = await videoPlaylistCollection.findOne({ publicId }, { projection: { playlist: 1 } });
+        const { data: playlist } = await axios.get(videoUrl);
+        const cloudName = process.env.CLOUD_NAME;
+        const cloudinaryUrlPrefix = `https://res.cloudinary.com/${cloudName}`
 
-        const regex = new RegExp(publicId, "g");
+        const regex = new RegExp(`/${cloudName}`, "g");
         let videoPlayList = playlist;
-        videoPlayList = videoPlayList.replace(regex, videoUrl);
+        videoPlayList = videoPlayList.replace(regex, cloudinaryUrlPrefix);
 
         res.set('Content-Type', 'application/x-mpegURL');
         res.send(videoPlayList);
